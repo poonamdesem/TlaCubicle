@@ -6,7 +6,8 @@ package tla2sany.cubicle;
 /**
  * a tool for exporting the loaded modules to XML format
  */
-
+import java.util.Arrays;
+import java.awt.image.SampleModel;
 import java.io.PrintStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Iterator;
@@ -26,6 +27,7 @@ import tla2sany.semantic.Context;
 import tla2sany.semantic.Errors;
 import tla2sany.semantic.ExternalModuleTable;
 import tla2sany.semantic.Generator;
+import tla2sany.semantic.LabelNode;
 import tla2sany.semantic.ModuleNode;
 import tla2sany.semantic.SemanticNode;
 import tla2sany.st.Location;
@@ -101,12 +103,11 @@ public class CubicleExporter {
     //System.setOut(new PrintStream(new ByteArrayOutputStream()));
 
     SpecObj[] specs = new SpecObj[tlas.length];
-    for (int i=0; i<tlas.length; i++) specs[i] = new SpecObj(tlas[i], fts);
-
+    for (int i=0; i<tlas.length; i++){ specs[i] = new SpecObj(tlas[i], fts);
     // For each file named on the command line (i.e. in the tlas
     // array) (re)initialize the entire system and process that file
     // as the root of a new specification.
-    for (int i = 0; i < tlas.length; i++) {
+    //for (int i = 0; i < tlas.length; i++) {
       // continue the loop where the last one left off
       // Print documentation line on System.out
       ToolIO.out.println("\n****** SANY2 " + SANY.version + "\n") ;
@@ -138,9 +139,36 @@ public class CubicleExporter {
     }
     
     // CALL TO CUBICLE CODE GOES HERE
+    ModuleNode m = specs[0].getExternalModuleTable().getRootModule();
+    int j = tlas[0].indexOf(".");
+    String ext = tlas[0].substring(j + 1);
+    String CubicleOutFile = tlas[0].replace(ext,"cub");
+    if (CubicleOutFile!= "")
+    {
+        WriteCubicleFile.Write(CubicleOutFile);
+        System.out.println("Wrote -CubicleOut file " + CubicleOutFile);
+    }
+    
     // main entry data structure is specs[i].getExternalModuleTable().getRootModule()
     if (specs.length != 1) throw new Exception("We only handle one argument.");
-    ModuleNode m = specs[0].getExternalModuleTable().getRootModule();
     System.out.println("The root module name is:" + m.getName());
+       
+    
+   // CubicleTranslation.Translate(LabelNode Node);
+    SampleVisitor.main(args);
+   
+   /* void translate(LevelNode node) {
+        if (node instanceof OpDeclNode) {
+       	 OpDecl n = (OpDeclNode) node;
+       	 System.out.println(node.getName());
+       	 return;
+        }
+    }*/
+    
+    
   }
-}
+    
+
+     
+  }
+

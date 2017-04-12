@@ -1,0 +1,60 @@
+type msg = Commit | Abort | ProposeCommit | ProposeAbort | Working
+
+type cmsg = Init | Ccommit | Cabort 
+
+array State[proc] : msg 
+
+var Coordinator : cmsg
+
+init (rm) {
+  Coordinator= Init && State[rm] = Working
+}
+
+unsafe (rm1 rm2) {
+                        
+  State[rm1]=Abort && State [rm2] = Commit
+
+}
+
+transition DecisionCommit(rm)
+
+requires { State[rm] = Working}
+{
+  State[rm] := ProposeCommit;           
+}
+
+transition DecisionAbort(rm)
+
+requires { State[rm] = Working}
+{
+  State[rm] := ProposeAbort;           
+}
+
+transition RmCommit(rm)
+requires { Coordinator = Ccommit }
+{
+  State[rm] := Commit;
+                      
+}
+transition RmAbort(rm)
+requires { Coordinator = Cabort}
+{
+  State[rm] := Abort;
+                      
+}
+
+transition CordCommit()
+requires {
+     	forall_other rm. (State[rm] = ProposeCommit) }
+{
+   Coordinator := Ccommit;
+           
+}
+transition CordAbort(rm)
+requires {
+     	State[rm] = ProposeAbort }
+{
+   Coordinator := Cabort;
+           
+}
+

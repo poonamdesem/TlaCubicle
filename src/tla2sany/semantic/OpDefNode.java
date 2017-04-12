@@ -1325,4 +1325,15 @@ public class OpDefNode extends OpDefOrDeclNode
     }
     return ret;
   }
+
+public static void visit(LevelNode node) {
+	 System.out.println("out opdef node");
+
+	if(node instanceof OpDefNode){
+      	 System.out.println("In opdef node"+node.getKind());
+
+		
+	}
+	
+}
 }

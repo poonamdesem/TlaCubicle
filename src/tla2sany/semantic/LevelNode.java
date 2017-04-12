@@ -340,7 +340,8 @@ public int levelChecked   = 0 ;
      * */
   protected Element getLevelElement(Document doc, tla2sany.xml.SymbolContext context) {
       throw new UnsupportedOperationException("xml export is not yet supported for: " + getClass() + " with toString: " + toString(100));
-    }
+    }  
+  
 
 }
 

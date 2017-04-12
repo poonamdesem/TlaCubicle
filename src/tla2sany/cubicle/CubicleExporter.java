@@ -6,12 +6,12 @@ package tla2sany.cubicle;
 /**
  * a tool for exporting the loaded modules to XML format
  */
-import java.util.Arrays;
+import java.lang.reflect.Array;
+import java.util.*;
+import java.awt.List;
 import java.awt.image.SampleModel;
 import java.io.PrintStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Iterator;
-import java.util.LinkedList;
 
 import tla2sany.drivers.SANY;
 import tla2sany.drivers.FrontEndException;
@@ -21,28 +21,18 @@ import tla2sany.explorer.ExplorerQuitException;
 import tla2sany.modanalyzer.ParseUnit;
 import tla2sany.modanalyzer.SpecObj;
 import tla2sany.parser.ParseException;
-import tla2sany.semantic.AbortException;
-import tla2sany.semantic.BuiltInLevel;
-import tla2sany.semantic.Context;
-import tla2sany.semantic.Errors;
-import tla2sany.semantic.ExternalModuleTable;
-import tla2sany.semantic.Generator;
-import tla2sany.semantic.LabelNode;
-import tla2sany.semantic.ModuleNode;
-import tla2sany.semantic.SemanticNode;
+import tla2sany.semantic.*;
 import tla2sany.st.Location;
 import tla2sany.semantic.ModuleNode;
+import tlc2.tool.BuiltInOPs;
+import tlc2.util.Vect;
+import tlc2.TLCGlobals;
+import tlc2.value.IntValue;
 import util.FileUtil;
 import util.ToolIO;
 import util.UniqueString;
 import util.FilenameToStream;
 import util.SimpleFilenameToStream;
-import tla2sany.semantic.SymbolNode;
-import tla2sany.semantic.AssumeNode;
-import tla2sany.semantic.TheoremNode;
-import tla2sany.semantic.InstanceNode;
-import tla2sany.semantic.OpDeclNode;
-import tla2sany.semantic.OpDefNode;
 
 
 // XML packages
@@ -143,32 +133,130 @@ public class CubicleExporter {
     int j = tlas[0].indexOf(".");
     String ext = tlas[0].substring(j + 1);
     String CubicleOutFile = tlas[0].replace(ext,"cub");
-    if (CubicleOutFile!= "")
+    /*if (CubicleOutFile!= "")
     {
         WriteCubicleFile.Write(CubicleOutFile);
         System.out.println("Wrote -CubicleOut file " + CubicleOutFile);
-    }
-    
+    }   */
     // main entry data structure is specs[i].getExternalModuleTable().getRootModule()
     if (specs.length != 1) throw new Exception("We only handle one argument.");
-    System.out.println("The root module name is:" + m.getName());
-       
-    
-   // CubicleTranslation.Translate(LabelNode Node);
-    SampleVisitor.main(args);
-   
-   /* void translate(LevelNode node) {
-        if (node instanceof OpDeclNode) {
-       	 OpDecl n = (OpDeclNode) node;
-       	 System.out.println(node.getName());
-       	 return;
-        }
-    }*/
-    
-    
-  }
-    
+      // Get all the state variables in the spec:
+      OpDeclNode[] variablesNodes; // The state variables.
+      OpDeclNode[] varDecls = m.getVariableDecls();
+      variablesNodes = new OpDeclNode[varDecls.length];
+     UniqueString[] varNames = new UniqueString[varDecls.length];
+      for (int i = 0; i < varDecls.length; i++)
+      {
+          variablesNodes[i] = varDecls[i];
+          varNames[i] = varDecls[i].getName();
+          // varNames[i].setLoc(i);
 
-     
+      }
+    OpDefNode[] arrOpt = m.getOpDefs();
+    Vector<OpDeclNode> list = new Vector<OpDeclNode>();
+    Vector<FormalParamNode> fps = new Vector<FormalParamNode>();
+      //findDecls(node,list,fps);
+      for (int i=0;i<arrOpt.length;i++){
+          findDecls(arrOpt[i].getBody() ,list,fps);
+         System.out.println(arrOpt[i].getName() + " == "+list+"Formal Parameter"+fps);
+
+      }
+      WriteCubicleFile.Write(CubicleOutFile,list,varNames);
+      //System.out.println("list == "+list);
+
+   // System.out.println("operator definition node"+Arrays.toString(arrOpt));
+
+
+
+  }
+  
+  private static void findDecls(LevelNode node, Vector<OpDeclNode> list, Vector<FormalParamNode> fps) throws Exception {
+      if (node == null) return;
+	  if (node instanceof StringNode)
+		  return;
+	  if (node instanceof OpDeclNode) {
+		  OpDeclNode opd = (OpDeclNode) node;
+		  System.out.println("Found decl of OpDeclNode== "+opd.getName());
+          list.add(opd);
+		  return;
+	  }
+	  if (node instanceof OpDefNode) {
+          OpDefNode opdef = (OpDefNode) node;
+          System.out.println("Found decl of OpDefNode== " + opdef.getName());
+          UniqueString opName = opdef.getName();
+          int opcode = BuiltInOPs.getOpCode(opName);
+          //System.out.print("OpCode==="+opcode+" ");
+          /*switch (opcode) {
+              case 7: // DisList
+              {
+
+                  System.out.println("Found decl of OpDefNode== " + opdef.getName() +"  OpCode= in Case=="+opcode);
+                  //findDecls(opdef.getBody(),list,fps);
+
+                  break;
+              }
+              case 6: // ConjList
+              {
+                  System.out.println("Found decl of OpDefNode== " + opdef.getName()+" OpCode= in Case=="+opcode);
+
+                  break;
+              }
+              case 42: // \in
+              {
+                  System.out.println("Found decl of OpDefNode== " + opdef.getName()+"OpCode in Case=="+opcode);
+
+                  break;
+              }
+              case 0: // Action
+              {
+                  System.out.println("Found decl of OpDefNode== " + opdef.getName()+"   OpCode in Case=="+opcode);
+
+                  break;
+              }
+
+              default:
+              {
+                  return;
+              }
+
+          }
+          */
+          findDecls(opdef.getBody(),list,fps);
+          return;
+      }
+	 /* if(node instanceof DecimalNode){
+          OpDeclNode decNode = (OpDeclNode) node;
+          list.add(decNode);
+          return;
+      }*/
+      if(node instanceof NumeralNode){
+	      NumeralNode numNode = (NumeralNode) node;
+          IntValue val = IntValue.gen(numNode.val());
+	      //list.add(val);
+          return;
+      }
+     if (node instanceof OpApplNode) {
+          OpApplNode node1 = (OpApplNode) node;
+          ExprOrOpArgNode[] args = node1.getArgs();
+          SymbolNode OpNode = node1.getOperator();
+          UniqueString opName = OpNode.getName();
+          findDecls(OpNode, list,fps);
+          for (int i = 0; i < args.length; i++) {
+               findDecls(args[i], list,fps);
+          }
+         return;
+      }
+      if (node instanceof FormalParamNode){
+          FormalParamNode formalParamNode = (FormalParamNode) node;
+          fps.add(formalParamNode);
+         // System.out.println("Found decl of FormalParamNode=="+symbolNode.getName());
+          fps.add(formalParamNode);
+          return;
+      }
+
+      throw new Exception("Unhandled case: "+node.getClass());
+
+  }
+
   }
 

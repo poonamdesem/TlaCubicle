@@ -107,7 +107,7 @@ public class FormalParamNode extends SymbolNode {
 //    return "Level: "               + this.getLevel()               + "\n" +
 //           "LevelParameters: "     + this.getLevelParams()         + "\n" +
 //           "LevelConstraints: "    + this.getLevelConstraints()    + "\n" +
-//           "ArgLevelConstraints: " + this.getArgLevelConstraints() + "\n" +
+                                                                                                                                                                                                                                                                                                                                         //           "ArgLevelConstraints: " + this.getArgLevelConstraints() + "\n" +
 //           "ArgLevelParams: "      + this.getArgLevelParams()      + "\n" ;
 //  }
 

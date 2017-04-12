@@ -36,7 +36,7 @@
 		<istrue value="${maven.test.halt}"/>
 	</condition>
 
-	<!-- https://github.com/alx3apps/jgit-buildnumber -->
+	<!-- https://github.com/alx3apps/jgit-buildnumber
 	<target name="git-revision">
 	    <taskdef name="jgit-buildnumber" classname="ru.concerteza.util.buildnumber.JGitBuildNumberAntTask">
 			<classpath>
@@ -46,14 +46,14 @@
 	    </taskdef>
 	    <jgit-buildnumber/>
 	</target>
-	
-	<target name="info" description="Prints information" depends="git-revision">
+	-->
+	<target name="info" description="Prints information">
 		<echo message="ANT_HOME     : ${env.ANT_HOME}" />
 		<echo message="Ant Version  : ${ant.version}" />
 		<echo message="Java Version : ${ant.java.version}" />
 		<echo message="Skipping Tests : ${test.skip}" />
 		<echo message="With AspectJ: ${withaj}" />
-		<echo message="Git BuildNumber: ${git.branch}_${git.tag}_${git.shortRevision}" />
+		<!-- <echo message="Git BuildNumber: ${git.branch}_${git.tag}_${git.shortRevision}" /> -->
 	</target>
 
 	<target name="default" depends="info" description="Default">

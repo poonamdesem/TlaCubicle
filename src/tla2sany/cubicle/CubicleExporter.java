@@ -6,27 +6,14 @@ package tla2sany.cubicle;
 /**
  * a tool for exporting the loaded modules to XML format
  */
-import java.lang.reflect.Array;
 import java.util.*;
-import java.awt.List;
-import java.awt.image.SampleModel;
-import java.io.PrintStream;
-import java.io.ByteArrayOutputStream;
 
 import tla2sany.drivers.SANY;
 import tla2sany.drivers.FrontEndException;
-import tla2sany.configuration.Configuration;
-import tla2sany.explorer.Explorer;
-import tla2sany.explorer.ExplorerQuitException;
-import tla2sany.modanalyzer.ParseUnit;
 import tla2sany.modanalyzer.SpecObj;
-import tla2sany.parser.ParseException;
 import tla2sany.semantic.*;
-import tla2sany.st.Location;
 import tla2sany.semantic.ModuleNode;
 import tlc2.tool.BuiltInOPs;
-import tlc2.util.Vect;
-import tlc2.TLCGlobals;
 import tlc2.value.IntValue;
 import util.FileUtil;
 import util.ToolIO;
@@ -34,27 +21,8 @@ import util.UniqueString;
 import util.FilenameToStream;
 import util.SimpleFilenameToStream;
 
-
 // XML packages
-import java.io.File;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import javax.xml.validation.SchemaFactory;
-import javax.xml.validation.Schema;
-import javax.xml.validation.Validator;
-import org.xml.sax.SAXException;
-import java.net.URL;
-import java.net.MalformedURLException;
 
-import org.w3c.dom.Attr;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 
 public class CubicleExporter {
 
@@ -185,7 +153,7 @@ public class CubicleExporter {
           System.out.println("Found decl of OpDefNode== " + opdef.getName());
           UniqueString opName = opdef.getName();
           int opcode = BuiltInOPs.getOpCode(opName);
-          //System.out.print("OpCode==="+opcode+" ");
+          System.out.print("OpCode===  "+opcode+" ");
           /*switch (opcode) {
               case 7: // DisList
               {
@@ -240,7 +208,30 @@ public class CubicleExporter {
           ExprOrOpArgNode[] args = node1.getArgs();
           SymbolNode OpNode = node1.getOperator();
           UniqueString opName = OpNode.getName();
-          findDecls(OpNode, list,fps);
+
+         //Object val = lookup(OpNode);
+          if(OpNode instanceof OpDefNode){
+             // UniqueString opName = opdef.getName();
+             // int opcode = BuiltInOPs.getOpCode(opName);
+              OpDefNode opDefNode = (OpDefNode) OpNode;
+              int opcode = BuiltInOPs.getOpCode(opDefNode.getName());
+              boolean isSetEnum = (opDefNode.getName().equals("$SetEnumerate"));
+              if(isSetEnum){
+                  ExprOrOpArgNode[] exprOrOpArgNodes = node1.getArgs();
+                  //getSetEnumerate(exprOrOpArgNodes,node1);
+                //  HashSet<UniqueString> arrVar = new HashSet<>();
+                  HashMap<UniqueString, UniqueString> hmap = new HashMap<>();
+                  for (int i = 0; i < exprOrOpArgNodes.length; i++) {
+                      StringNode expr1 = (StringNode) exprOrOpArgNodes[i];
+                    //  arrVar.add(expr1.getRep());
+                      //OpDeclNode opd = (OpDeclNode) node;
+                     // hmap.put(opd.getName(),expr1.getRep());
+                      System.out.print("String == "+expr1.getRep());
+                  }
+
+              }
+          }
+         findDecls(OpNode, list,fps);
           for (int i = 0; i < args.length; i++) {
                findDecls(args[i], list,fps);
           }
@@ -257,6 +248,49 @@ public class CubicleExporter {
       throw new Exception("Unhandled case: "+node.getClass());
 
   }
+ /*  public getSetEnumerate(ExprOrOpArgNode args1,  OpDeclNode node1){
+        for (int i = 0; i < args1.length; i++) {
+            StringNode expr1 = (StringNode) args1[i];
+            System.out.print("String == "+expr1.getRep());
 
+    }
+*/
+   /*  public static final Object lookup(SymbolNode opNode)
+   {
+      //  OpDefNode body = ((OpDefNode) opNode).getBody();
+
+        boolean isSetEnum = (body.getName().equals("$SetEnumerate"));
+        if(isSetEnum){
+            System.out.print("in set enum " +body.getName());
+
+        }
+  Object result = c.lookup(opNode, cutoff && isVarDecl);
+        if (result != null)
+            return result;
+
+        result = opNode.getToolObject(TLCGlobals.ToolId);
+        if (result != null)
+            return result;
+
+        if (opNode.getKind() == UserDefinedOpKind)
+        {
+            // Changed by LL on 10 Apr 2011 from
+            //
+            //    result = ((OpDefNode) opNode).getBody().getToolObject(TLCGlobals.ToolId);
+            //
+            // to the following
+            ExprNode body = ((OpDefNode) opNode).getBody();
+            result = body.getToolObject(TLCGlobals.ToolId);
+            while ((result == null) && (body.getKind() == SubstInKind)) {
+                body = ((SubstInNode) body).getBody();
+                result = body.getToolObject(TLCGlobals.ToolId);
+            }
+            // end change
+            if (result != null)
+                return result;
+        }
+        return opNode;
+    }*/
   }
 
+//http://beginnersbook.com/2013/12/hashmap-in-java-with-example/

@@ -33,10 +33,9 @@ public class WriteCubicleFile
         writer.write(var1);
         writer.write("\n");
     }*/
-
      Set set = hmap.entrySet();
      Iterator iterator = set.iterator();
-     while(iterator.hasNext()) {
+     while(iterator.hasNext()) { // list of conjuct in TypeOK invariant
          Map.Entry mentry = (Map.Entry)iterator.next();
          if (mentry.getValue() instanceof OpApplNode){
 
@@ -63,22 +62,23 @@ public class WriteCubicleFile
                 if(argNode.length > 0) { //setFunction
                  if (OpNode.getName().equals("$SetOfFcns")){
                      ExprOrOpArgNode[] setFcns = node.getArgs();
-                     ExprNode setf = (ExprNode) setFcns[0];
-                     ExprNode setf1 = (ExprNode) setFcns[1];
+                     ExprNode setf = (ExprNode) setFcns[0]; // times
+                     ExprNode setf1 = (ExprNode) setFcns[1]; //$setenumerate
                      if (setf1 instanceof OpApplNode){
                          OpApplNode node1 = (OpApplNode) setf1 ;
+
                          SymbolNode node2 = node1.getOperator();
                          if (node2 instanceof OpDefNode)
                          {
-                             //ExprNode typemsg = ((OpDefNode) node2).getBody();
+
                              SemanticNode expr = ((OpDefNode) node2).getBody();
                              OpApplNode expr1 = (OpApplNode) expr;
                              SymbolNode opNode = expr1.getOperator(); //$setenumerate
                              ExprOrOpArgNode[] exprOrOpArgNodes = expr1.getArgs();
                              String varList = SetEnumerators(exprOrOpArgNodes);
-
+                             String procList = getProcList(setf);
                              String typeDecl = "type "+((OpApplNode) setf1).getOperator().getName()+"="+varList;
-                             String arrDecl = "array "+ mentry.getKey()+"[proc]:"+ ((OpApplNode) setf1).getOperator().getName();
+                             String arrDecl = "array "+ mentry.getKey()+"["+procList+"]:"+ ((OpApplNode) setf1).getOperator().getName();
                              writer.write(typeDecl);
                              writer.write("\n");
                              writer.write(arrDecl);
@@ -97,12 +97,30 @@ public class WriteCubicleFile
      writer.close();
 	 }
 	 catch (IOException e) {
-
 			e.printStackTrace();
 		 
 	 }
 
     }
+     private static String getProcList(ExprNode setf) {
+         if (setf instanceof OpApplNode) {
+             OpApplNode node3 = (OpApplNode) setf;
+             ExprOrOpArgNode[] args = node3.getArgs();
+             String procArr="";
+
+            int len = args.length;
+             do {
+                 procArr=procArr.concat("proc,");
+                 len--;
+             } while (len>0);
+             String str = procArr.substring(0, procArr.length()-1);
+             return str;
+         }
+         else {
+             return null;
+         }
+     }
+
      private static String SetEnumerators(ExprOrOpArgNode[] exprOrOpArgNodes) {
          String varList = "";
          for (int i = 0; i < exprOrOpArgNodes.length; i++) {
@@ -112,7 +130,6 @@ public class WriteCubicleFile
 
              }else {
                  varList = varList.concat("|"+String.valueOf(expr1.getRep()));
-
              }
          }
         return varList;

@@ -149,34 +149,39 @@ public class CubicleExporter {
                 OpApplNode opApplNode = (OpApplNode) conj;
                 ExprOrOpArgNode[] argNode = opApplNode.getArgs();
                 SymbolNode OpNode = opApplNode.getOperator(); // \in operator
-                UniqueString opName = OpNode.getName();
-                if (argNode.length==2){
-                    OpApplNode opApplNode1= (OpApplNode) argNode[0];
-                        //opdefList.add(opApplNode1);
-                        OpApplNode opApplNode2= (OpApplNode) argNode[1];
-                       // ExprOrOpArgNode[] exprOrOpArgNodes = opApplNode2.getArgs();
-                       // opdefList.add(opApplNode2);
-                        // System.out.print("key is: "+ opApplNode1.getOperator().getName() + " & Value is: ");
-                      //  System.out.println(opApplNode2.getOperator().getName());
-                         hmap.put(opApplNode1.getOperator().getName(),opApplNode2);
-                       /* ExprOrOpArgNode[] exprOrOpArgNodes = opApplNode2.getArgs();
-                        UniqueString[] values = new UniqueString[100];
-                        for (int j=0;j<exprOrOpArgNodes.length;j++){
-                            StringNode expr1 = (StringNode) exprOrOpArgNodes[j];
-                            opdefList.add(expr1.getRep());
-                            values[i] = expr1.getRep();
-                            System.out.println(i+"="+values[i]);
+                int opcode = BuiltInOPs.getOpCode(OpNode.getName());
+                switch (opcode){
+                   case 42: { // in operator
+                       UniqueString opName = OpNode.getName();
+                       if (argNode.length==2){
+                           OpApplNode opApplNode1= (OpApplNode) argNode[0];
+                           OpApplNode opApplNode2= (OpApplNode) argNode[1];
+                           hmap.put(opApplNode1.getOperator().getName(),opApplNode2);
+                       }
+                       Set set = hmap.entrySet();
+                       Iterator iterator = set.iterator();
+                       while(iterator.hasNext()) {
+                           Map.Entry mentry = (Map.Entry)iterator.next();
+                           // System.out.print("key is: "+ mentry.getKey() + " & Value is: ");
+                           // System.out.println(mentry.getValue());
+                       }
+                       break;
 
-                        }
-                        hmap.put(opApplNode1.getOperator().getName(),opdefList);*/
+                   }
+
+                   case  3: { // forAll
+                       System.out.println(argNode.length+"=="+ opApplNode.getOperator().getName());
+
+                       break;
+
+                   }
+
+                   default:{
+
+                   }
+
                 }
-                Set set = hmap.entrySet();
-                Iterator iterator = set.iterator();
-                while(iterator.hasNext()) {
-                    Map.Entry mentry = (Map.Entry)iterator.next();
-                   // System.out.print("key is: "+ mentry.getKey() + " & Value is: ");
-                    //System.out.println(mentry.getValue());
-                }
+
 
             }
 
@@ -268,14 +273,6 @@ public class CubicleExporter {
       throw new Exception("Unhandled case: "+node.getClass());
 
   }
- /*  public getSetEnumerate(ExprOrOpArgNode args1,  OpDeclNode node1){
-        for (int i = 0; i < args1.length; i++) {
-            StringNode expr1 = (StringNode) args1[i];
-            System.out.print("String == "+expr1.getRep());
-
-    }
-*/
-
   }
 
 //http://beginnersbook.com/2013/12/hashmap-in-java-with-example/

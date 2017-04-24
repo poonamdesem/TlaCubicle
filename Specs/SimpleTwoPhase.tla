@@ -2,9 +2,11 @@
 CONSTANT RM
 VARIABLES Coordinator,rmState
 
+Cmessage == {"init","Ccommit","Cabort"}
+RmMessage == {"working","proposeCommit","proposeAbort","committed","aborted"}
 
-TypeOK == /\ rmState \in [RM -> {"working","proposeCommit","proposeAbort","committed","aborted"}] 
-          /\ Coordinator \in {"init","Ccommit","Cabort"}
+TypeOK == /\ rmState \in [RM -> RmMessage]
+          /\ Coordinator \in Cmessage
 
 Init == /\ rmState  = [rm  \in RM |-> "working"] 
         /\ Coordinator = "init"

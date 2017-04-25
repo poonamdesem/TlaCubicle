@@ -9,30 +9,21 @@
 ***************************************************************************/
 package tla2sany.cubicle ;
 import tla2sany.semantic.*;
+import tla2tex.Symbol;
 import util.UniqueString;
 
 import java.io.*;
 import java.util.*;
 
 public class WriteCubicleFile
- { public static void Write(String fileName, Vector <OpApplNode> opdefList, UniqueString[] varNames, HashMap <UniqueString, OpApplNode> hmap)
+ { public static void Write(String fileName,HashMap <UniqueString, OpApplNode> hmap, HashMap <UniqueString, ExprNode> initHmap)
     {
 	 try{
 	 File file = new File(fileName);
-
-     
      // creates the file
      file.createNewFile();
-     
      // creates a FileWriter Object
      FileWriter writer = new FileWriter(file);
-     
-     // Writes the variables to the file
-    /*for (int i=0; i<varNames.length; i++) {
-        String var1 = "var "+varNames[i]+":"+varNames[i]+"1";
-        writer.write(var1);
-        writer.write("\n");
-    }*/
      Set set = hmap.entrySet();
      Iterator iterator = set.iterator();
      while(iterator.hasNext()) { // list of conjuct in TypeOK invariant
@@ -50,7 +41,6 @@ public class WriteCubicleFile
                      SymbolNode opNode = expr1.getOperator(); //$setenumerate
                      ExprOrOpArgNode[] exprOrOpArgNodes = expr1.getArgs();
                      String varList = SetEnumerators(exprOrOpArgNodes);
-                    // String typeDecl = "type "+OpNode.getName()+"="+((OpDefNode) OpNode).getBody();
                      String typeDecl = "type "+OpNode.getName()+"="+varList;
                      String varDecl = "var "+mentry.getKey()+":"+OpNode.getName();
                      writer.write(typeDecl);
@@ -73,7 +63,6 @@ public class WriteCubicleFile
 
                              SemanticNode expr = ((OpDefNode) node2).getBody();
                              OpApplNode expr1 = (OpApplNode) expr;
-                             SymbolNode opNode = expr1.getOperator(); //$setenumerate
                              ExprOrOpArgNode[] exprOrOpArgNodes = expr1.getArgs();
                              String varList = SetEnumerators(exprOrOpArgNodes);
                              String procList = getProcList(setf);
@@ -91,7 +80,71 @@ public class WriteCubicleFile
          }
 
      }
+     // Translate Initialization section
+         String initStr = "init{";
+         //writer.write(initStr);
+         Set initSet = initHmap.entrySet();
+         Iterator initIt = initSet.iterator();
+         while(initIt.hasNext()) { // list of conjuct in Init
+             Map.Entry mentry = (Map.Entry) initIt.next();
 
+             if (mentry.getValue() instanceof OpApplNode) { // for function
+                 OpApplNode node1 = (OpApplNode) mentry.getValue(); //get function
+                 SymbolNode node2 = node1.getOperator(); //$FcnConstructor
+
+                 ExprOrOpArgNode[] setFcns = node1.getArgs();
+                 ExprNode setf = (ExprNode) setFcns[0];
+                 StringNode stringNode=(StringNode)setf;// get value i.e "working"
+                FormalParamNode[][] formalParamNodes = node1.getBdedQuantSymbolLists();
+                 String initId = "";
+                 for(int i=0;i<formalParamNodes[0].length;i++){
+                     SymbolNode symbolNode = (SymbolNode) formalParamNodes[0][i];
+                     initId = initId.concat(String.valueOf(symbolNode.getName())+",");
+                 }
+                 System.out.println("expr  "+initId);
+
+                 ExprNode[] exprNodes = node1.getBdedQuantBounds();
+                 if (exprNodes[0] instanceof OpApplNode) { // getting RM
+                     OpApplNode node3 = (OpApplNode) exprNodes[0];
+                     System.out.println("expr  "+node3.getOperator().getName());
+
+                 }
+                 if (node2 instanceof OpDefNode) {
+                     System.out.println("in if");
+                     OpDefNode opDef1 = (OpDefNode) node2;
+                     SymbolNode exprNode = (SymbolNode) opDef1;
+                    System.out.println(exprNode.getName());
+
+                }
+                // String initStr="";
+                if (initId!=null){
+                   String str = initId.substring(0, initId.length()-1);
+                     initStr = "init("+str+"){";
+
+                }else {
+                     initStr = "init{";
+                }
+                 String initStr1 = mentry.getKey()+"="+stringNode.getRep();
+                 //writer.write(initStr);
+                 writer.write("\n");
+                 writer.write(initStr1);
+
+             }
+
+             if(mentry.getValue() instanceof StringNode){
+                 StringNode stringNode = (StringNode) mentry.getValue();
+                 String initStr1 = mentry.getKey()+"="+stringNode.getRep();
+                 writer.write(initStr1);
+
+             }
+
+         }
+         writer.write(initStr);
+
+
+
+         writer.write("}");
+         writer.write("\n");
 
      writer.flush();
      writer.close();
@@ -113,7 +166,7 @@ public class WriteCubicleFile
                  procArr=procArr.concat("proc,");
                  len--;
              } while (len>0);
-             String str = procArr.substring(0, procArr.length()-1);
+             String str = procArr.substring(0, procArr.length()-1); // removing , at the end
              return str;
          }
          else {

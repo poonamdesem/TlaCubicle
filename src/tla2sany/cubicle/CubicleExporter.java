@@ -6,6 +6,7 @@ package tla2sany.cubicle;
 /**
  * a tool for exporting the loaded modules to XML format
  */
+
 import java.util.*;
 
 import tla2sany.drivers.SANY;
@@ -27,199 +28,203 @@ import util.SimpleFilenameToStream;
 
 public class CubicleExporter {
 
-  public static final void main(String[] args) throws Exception  {
+    public static final void main(String[] args) throws Exception {
 
-    // parse arguments, possible flag
-    // s
-    // -I (a modules path) can be repeated
-    // then a list of top level modules to parse)
-    if (args.length < 1) throw new IllegalArgumentException("at least one .tla file must be given");
-    LinkedList pathsLs = new LinkedList();
+        // parse arguments, possible flag
+        // s
+        // -I (a modules path) can be repeated
+        // then a list of top level modules to parse)
+        if (args.length < 1) throw new IllegalArgumentException("at least one .tla file must be given");
+        LinkedList pathsLs = new LinkedList();
 
-    boolean offline_mode = false;
-    int lastarg = -1; // lastarg will be incremented, initialize at -1
-    for (int i = 0; i<args.length-1; i++) {
-    	if ("-I".equals(args[i])) {
-            i++;
-            if (i > args.length-2) throw new IllegalArgumentException("the -I flag must be followed by a directory and at least one .tla file");
-            pathsLs.addLast(args[i]);
-            lastarg = i;
+        boolean offline_mode = false;
+        int lastarg = -1; // lastarg will be incremented, initialize at -1
+        for (int i = 0; i < args.length - 1; i++) {
+            if ("-I".equals(args[i])) {
+                i++;
+                if (i > args.length - 2)
+                    throw new IllegalArgumentException("the -I flag must be followed by a directory and at least one .tla file");
+                pathsLs.addLast(args[i]);
+                lastarg = i;
+            }
         }
-    }
 
-    lastarg++;
+        lastarg++;
 
-    String[] paths = new String[pathsLs.size()];
-    for (int i=0; i<paths.length; i++) paths[i] = (String)pathsLs.get(i);
+        String[] paths = new String[pathsLs.size()];
+        for (int i = 0; i < paths.length; i++) paths[i] = (String) pathsLs.get(i);
 
-    String[] tlas = new String[args.length - lastarg];
-    for (int i=0; i<args.length-lastarg; i++) tlas[i] = args[lastarg++];
+        String[] tlas = new String[args.length - lastarg];
+        for (int i = 0; i < args.length - lastarg; i++) tlas[i] = args[lastarg++];
 
-    FilenameToStream fts = new SimpleFilenameToStream(paths);
+        FilenameToStream fts = new SimpleFilenameToStream(paths);
 
-    // redirecting System.out
-    //PrintStream out = System.out;
-    //System.setOut(new PrintStream(new ByteArrayOutputStream()));
+        // redirecting System.out
+        //PrintStream out = System.out;
+        //System.setOut(new PrintStream(new ByteArrayOutputStream()));
 
-    SpecObj[] specs = new SpecObj[tlas.length];
-    for (int i=0; i<tlas.length; i++){ specs[i] = new SpecObj(tlas[i], fts);
-    // For each file named on the command line (i.e. in the tlas
-    // array) (re)initialize the entire system and process that file
-    // as the root of a new specification.
-    //for (int i = 0; i < tlas.length; i++) {
-      // continue the loop where the last one left off
-      // Print documentation line on System.out
-      ToolIO.out.println("\n****** SANY2 " + SANY.version + "\n") ;
+        SpecObj[] specs = new SpecObj[tlas.length];
+        for (int i = 0; i < tlas.length; i++) {
+            specs[i] = new SpecObj(tlas[i], fts);
+            // For each file named on the command line (i.e. in the tlas
+            // array) (re)initialize the entire system and process that file
+            // as the root of a new specification.
+            //for (int i = 0; i < tlas.length; i++) {
+            // continue the loop where the last one left off
+            // Print documentation line on System.out
+            ToolIO.out.println("\n****** SANY2 " + SANY.version + "\n");
 
-      // Get next file name from command line; then parse,
-      // semantically analyze, and level check the spec started in
-      // file Filename leaving the result (normally) in Specification
-      // spec.
-      // check if file exists
-      if (FileUtil.createNamedInputStream(tlas[i], specs[i].getResolver()) != null)
-      {
-          try {
-              SANY.frontEndMain(specs[i], tlas[i], System.err);
-              if (specs[i].getExternalModuleTable() == null)
-                throw new Exception("spec " + specs[i].getName() + " is malformed - does not have an external module table", null);
-              if (specs[i].getExternalModuleTable().getRootModule() == null)
-                throw new Exception("spec " + specs[i].getName() + " is malformed - does not have a root module", null);
+            // Get next file name from command line; then parse,
+            // semantically analyze, and level check the spec started in
+            // file Filename leaving the result (normally) in Specification
+            // spec.
+            // check if file exists
+            if (FileUtil.createNamedInputStream(tlas[i], specs[i].getResolver()) != null) {
+                try {
+                    SANY.frontEndMain(specs[i], tlas[i], System.err);
+                    if (specs[i].getExternalModuleTable() == null)
+                        throw new Exception("spec " + specs[i].getName() + " is malformed - does not have an external module table", null);
+                    if (specs[i].getExternalModuleTable().getRootModule() == null)
+                        throw new Exception("spec " + specs[i].getName() + " is malformed - does not have a root module", null);
+                } catch (FrontEndException fe) {
+                    // For debugging
+                    fe.printStackTrace();
+                    ToolIO.out.println(fe);
+                    return;
+                }
+            } else {
+                ToolIO.out.println("Cannot find the specified file " + tlas[i] + ".");
             }
-            catch (FrontEndException fe) {
-              // For debugging
-              fe.printStackTrace();
-              ToolIO.out.println(fe);
-              return;
-            }
-      } else
-      {
-          ToolIO.out.println("Cannot find the specified file " + tlas[i] + ".");
-      }
-    }
-    
-    // CALL TO CUBICLE CODE GOES HERE
-    ModuleNode m = specs[0].getExternalModuleTable().getRootModule();
-    int j = tlas[0].indexOf(".");
-    String ext = tlas[0].substring(j + 1);
-    String CubicleOutFile = tlas[0].replace(ext,"cub");
+        }
+
+        // CALL TO CUBICLE CODE GOES HERE
+        ModuleNode m = specs[0].getExternalModuleTable().getRootModule();
+        int j = tlas[0].indexOf(".");
+        String ext = tlas[0].substring(j + 1);
+        String CubicleOutFile = tlas[0].replace(ext, "cub");
     /*if (CubicleOutFile!= "")
     {
         WriteCubicleFile.Write(CubicleOutFile);
         System.out.println("Wrote -CubicleOut file " + CubicleOutFile);
     }   */
-    // main entry data structure is specs[i].getExternalModuleTable().getRootModule()
-    if (specs.length != 1) throw new Exception("We only handle one argument.");
-      // Get all the state variables in the spec:
-      OpDeclNode[] variablesNodes; // The state variables.
-      OpDeclNode[] varDecls = m.getVariableDecls();
-      variablesNodes = new OpDeclNode[varDecls.length];
-     UniqueString[] varNames = new UniqueString[varDecls.length];
-      for (int i = 0; i < varDecls.length; i++)
-      {
-          variablesNodes[i] = varDecls[i];
-          varNames[i] = varDecls[i].getName();
-      }
-    OpDefNode[] arrOpt = m.getOpDefs();
-    Vector<OpDeclNode> list = new Vector<OpDeclNode>();
-    Vector<FormalParamNode> fps = new Vector<FormalParamNode>();
-    //Vector <UniqueString> opdefList = new Vector<UniqueString>();
-   // HashMap<UniqueString, Vector <UniqueString>> hmap = new HashMap<>();
-     Vector <OpApplNode> opdefList = new Vector<OpApplNode>();
-
-      HashMap<UniqueString, OpApplNode> hmap = new HashMap<>();
-    for (int i=0;i<arrOpt.length;i++){
-          findVariableDecls(arrOpt[i] ,opdefList,hmap);
-         // findDecls(arrOpt[i].getBody(),list,fps);
-          // findDecls(arrOpt[i].getBody(),arrOpt[i].getName(),list,fps);
-        //  System.out.println(arrOpt[i].getName() + " == "+list+"Formal Parameter"+fps);
+        // main entry data structure is specs[i].getExternalModuleTable().getRootModule()
+        if (specs.length != 1) throw new Exception("We only handle one argument.");
+        // Get all the state variables in the spec:
+        OpDeclNode[] variablesNodes; // The state variables.
+        OpDeclNode[] varDecls = m.getVariableDecls();
+        variablesNodes = new OpDeclNode[varDecls.length];
+        UniqueString[] varNames = new UniqueString[varDecls.length];
+        for (int i = 0; i < varDecls.length; i++) {
+            variablesNodes[i] = varDecls[i];
+            varNames[i] = varDecls[i].getName();
+        }
+        OpDefNode[] arrOpt = m.getOpDefs();
+        Vector <OpDeclNode> list = new Vector <OpDeclNode>();
+        Vector <FormalParamNode> fps = new Vector <FormalParamNode>();
+        HashMap <UniqueString, OpApplNode> hmap = new HashMap <>();
+        HashMap<UniqueString,ExprNode> initHmap =new HashMap <>();
+        for (int i = 0; i < arrOpt.length; i++) {
+            if (arrOpt[i].getName().equals("TypeOK")) {
+                findVariableDecls(arrOpt[i], hmap);
+            }
+            if (arrOpt[i].getName().equals("Init")) {
+                findInitialization(arrOpt[i], initHmap);
+            }
+            // findDecls(arrOpt[i].getBody(),list,fps);
+            // findDecls(arrOpt[i].getBody(),arrOpt[i].getName(),list,fps);
+            // System.out.println(arrOpt[i].getName());
+        }
+        WriteCubicleFile.Write(CubicleOutFile,hmap,initHmap);
     }
 
-     // List<UniqueString> indexes = new ArrayList<UniqueString>(hmap.keySet());
-      //System.out.println(hmap.get(indexes.indexOf("rmState")));
-       WriteCubicleFile.Write(CubicleOutFile,opdefList,varNames,hmap);
-  }
-  private static void findVariableDecls(OpDefNode opDefNode, Vector <OpApplNode> opdefList , HashMap <UniqueString, OpApplNode> hmap ) throws Exception{
-    if(opDefNode.getName().equals("TypeOK")){
+    private static void findInitialization(OpDefNode opDefNode, HashMap<UniqueString, ExprNode> initHmap) throws Exception{
         LevelNode node = opDefNode.getBody();
-        if (node instanceof OpApplNode){
+        if (node instanceof OpApplNode) {
             OpApplNode node1 = (OpApplNode) node;
-            ExprOrOpArgNode[] conjList = node1.getArgs();// get set of conjunction in TypeOK
-            for (int i = 0;i<conjList.length;i++){
+            ExprOrOpArgNode[] conjList = node1.getArgs();
+            for (int i = 0; i < conjList.length; i++) {
                 ExprNode conj = (ExprNode) conjList[i];
                 OpApplNode opApplNode = (OpApplNode) conj;
                 ExprOrOpArgNode[] argNode = opApplNode.getArgs();
-                SymbolNode OpNode = opApplNode.getOperator(); // \in operator
-                int opcode = BuiltInOPs.getOpCode(OpNode.getName());
-                switch (opcode){
-                   case 42: { // in operator
-                       UniqueString opName = OpNode.getName();
-                       if (argNode.length==2){
-                           OpApplNode opApplNode1= (OpApplNode) argNode[0];
-                           OpApplNode opApplNode2= (OpApplNode) argNode[1];
-                           hmap.put(opApplNode1.getOperator().getName(),opApplNode2);
-                       }
-                       Set set = hmap.entrySet();
-                       Iterator iterator = set.iterator();
-                       while(iterator.hasNext()) {
-                           Map.Entry mentry = (Map.Entry)iterator.next();
-                           // System.out.print("key is: "+ mentry.getKey() + " & Value is: ");
-                           // System.out.println(mentry.getValue());
-                       }
-                       break;
-
-                   }
-
-                   case  3: { // forAll
-                       System.out.println(argNode.length+"=="+ opApplNode.getOperator().getName());
-
-                       break;
-
-                   }
-
-                   default:{
-
-                   }
+                OpApplNode opApplNode1 = (OpApplNode) argNode[0];
+                //System.out.print(argNode[1]); // till here same as findVariableDecls method, can be put into switch case of single method
+                if (argNode[1] instanceof ExprNode){
+                    ExprNode exprNode = (ExprNode) argNode[1];
+                    initHmap.put(opApplNode1.getOperator().getName(), exprNode);
+                }else {
+                    throw new Exception("Unhandled case: " + argNode[1].getClass());
 
                 }
-
-
             }
 
         }
-        else {
-            throw new Exception("Unhandled case: "+node.getClass());
-        }
+
+    }
+
+    private static void findVariableDecls(OpDefNode opDefNode, HashMap <UniqueString, OpApplNode> hmap) throws Exception {
+        if (opDefNode.getName().equals("TypeOK")) {
+            LevelNode node = opDefNode.getBody();
+            if (node instanceof OpApplNode) {
+                OpApplNode node1 = (OpApplNode) node;
+                ExprOrOpArgNode[] conjList = node1.getArgs();// get set of conjunction in TypeOK
+                for (int i = 0; i < conjList.length; i++) {
+                    ExprNode conj = (ExprNode) conjList[i];
+                    OpApplNode opApplNode = (OpApplNode) conj;
+                    ExprOrOpArgNode[] argNode = opApplNode.getArgs();
+                    SymbolNode OpNode = opApplNode.getOperator(); // \in operator
+                    int opcode = BuiltInOPs.getOpCode(OpNode.getName());
+
+                    UniqueString opName = OpNode.getName();
+                    if (argNode.length == 2) {
+                        OpApplNode opApplNode1 = (OpApplNode) argNode[0];
+                        OpApplNode opApplNode2 = (OpApplNode) argNode[1];
+                        hmap.put(opApplNode1.getOperator().getName(), opApplNode2);
+                    }
+                    Set set = hmap.entrySet();
+                    Iterator iterator = set.iterator();
+                    while (iterator.hasNext()) {
+                        Map.Entry mentry = (Map.Entry) iterator.next();
+                        // System.out.print("key is: "+ mentry.getKey() + " & Value is: ");
+                        // System.out.println(mentry.getValue());
+                    }
+
+                }
+
+            } else {
+                throw new Exception("Unhandled case: " + node.getClass());
+            }
 
         }
     }
-   private static void findDecls(LevelNode node, UniqueString name, Vector <OpDeclNode> list, Vector <FormalParamNode> fps) throws Exception {
-      if (node == null) return;
-	  if (node instanceof StringNode)
-		  return;
-	  if (node instanceof OpDeclNode) {
-		  OpDeclNode opd = (OpDeclNode) node;
-		  System.out.println("Found decl of OpDeclNode== "+opd.getName());
-          list.add(opd);
-		  return;
-	  }
-	  if (node instanceof OpDefNode) {
-          OpDefNode opdef = (OpDefNode) node;
-          System.out.println("Found decl of OpDefNode== " + opdef.getName());
-          UniqueString opName = opdef.getName();
-          findDecls(opdef.getBody(), name, list,fps);
-          return;
-      }
-      if(node instanceof NumeralNode){
-	      NumeralNode numNode = (NumeralNode) node;
-          IntValue val = IntValue.gen(numNode.val());
-	      //list.add(val);
-          return;
-      }
-     if (node instanceof OpApplNode) {
-          OpApplNode node1 = (OpApplNode) node;
-          ExprOrOpArgNode[] args = node1.getArgs();
-          SymbolNode OpNode = node1.getOperator();
-          UniqueString opName = OpNode.getName();
+
+    private static void findDecls(LevelNode node, UniqueString name, Vector <OpDeclNode> list, Vector <FormalParamNode> fps) throws Exception {
+        if (node == null) return;
+        if (node instanceof StringNode)
+            return;
+        if (node instanceof OpDeclNode) {
+            OpDeclNode opd = (OpDeclNode) node;
+            System.out.println("Found decl of OpDeclNode== " + opd.getName());
+            list.add(opd);
+            return;
+        }
+        if (node instanceof OpDefNode) {
+            OpDefNode opdef = (OpDefNode) node;
+            System.out.println("Found decl of OpDefNode== " + opdef.getName());
+            UniqueString opName = opdef.getName();
+            findDecls(opdef.getBody(), name, list, fps);
+            return;
+        }
+        if (node instanceof NumeralNode) {
+            NumeralNode numNode = (NumeralNode) node;
+            IntValue val = IntValue.gen(numNode.val());
+            //list.add(val);
+            return;
+        }
+        if (node instanceof OpApplNode) {
+            OpApplNode node1 = (OpApplNode) node;
+            ExprOrOpArgNode[] args = node1.getArgs();
+            SymbolNode OpNode = node1.getOperator();
+            UniqueString opName = OpNode.getName();
 
         /* if(opDefNode.getName().equals("TypeOK")){
              LevelNode node = opDefNode.getBody();
@@ -231,48 +236,48 @@ public class CubicleExporter {
 
              }
          }*/
-          if(OpNode instanceof OpDefNode){
-              OpDefNode opDefNode = (OpDefNode) OpNode;
-              int opcode = BuiltInOPs.getOpCode(opDefNode.getName());
-              boolean isSetEnum = (opDefNode.getName().equals("$SetEnumerate"));
-              boolean isCL = (opDefNode.getName().equals("$CongList"));
-              if(isSetEnum){
-                  ExprOrOpArgNode[] exprOrOpArgNodes = node1.getArgs();
-                  HashMap<UniqueString, UniqueString> hmap = new HashMap<>();
-                  for (int i = 0; i < exprOrOpArgNodes.length; i++) {
-                      StringNode expr1 = (StringNode) exprOrOpArgNodes[i];
-                     // hmap.put(opd.getName(),expr1.getRep());
-                      System.out.print("String == "+expr1.getRep());
-                  }
+            if (OpNode instanceof OpDefNode) {
+                OpDefNode opDefNode = (OpDefNode) OpNode;
+                int opcode = BuiltInOPs.getOpCode(opDefNode.getName());
+                boolean isSetEnum = (opDefNode.getName().equals("$SetEnumerate"));
+                boolean isCL = (opDefNode.getName().equals("$CongList"));
+                if (isSetEnum) {
+                    ExprOrOpArgNode[] exprOrOpArgNodes = node1.getArgs();
+                    HashMap <UniqueString, UniqueString> hmap = new HashMap <>();
+                    for (int i = 0; i < exprOrOpArgNodes.length; i++) {
+                        StringNode expr1 = (StringNode) exprOrOpArgNodes[i];
+                        // hmap.put(opd.getName(),expr1.getRep());
+                        System.out.print("String == " + expr1.getRep());
+                    }
 
-              }
-              if(name.equals("TypeOK")){
-                  if(isCL) {
-                      ExprOrOpArgNode[] args1 = node1.getArgs();// get set of conjunction in TypeOK
-                      for (int i = 0; i < args.length; i++) {
-                          ExprNode conj = (ExprNode) args[i];
-                          findDecls(conj, name, list, fps );
-                      }
-                  }
-              }
-          }
-         findDecls(OpNode,name, list,fps);
-          for (int i = 0; i < args.length; i++) {
-               findDecls(args[i], name, list,fps);
-          }
-         return;
-      }
-      if (node instanceof FormalParamNode){
-          FormalParamNode formalParamNode = (FormalParamNode) node;
-          fps.add(formalParamNode);
-         // System.out.println("Found decl of FormalParamNode=="+symbolNode.getName());
-          fps.add(formalParamNode);
-          return;
-      }
+                }
+                if (name.equals("TypeOK")) {
+                    if (isCL) {
+                        ExprOrOpArgNode[] args1 = node1.getArgs();// get set of conjunction in TypeOK
+                        for (int i = 0; i < args.length; i++) {
+                            ExprNode conj = (ExprNode) args[i];
+                            findDecls(conj, name, list, fps);
+                        }
+                    }
+                }
+            }
+            findDecls(OpNode, name, list, fps);
+            for (int i = 0; i < args.length; i++) {
+                findDecls(args[i], name, list, fps);
+            }
+            return;
+        }
+        if (node instanceof FormalParamNode) {
+            FormalParamNode formalParamNode = (FormalParamNode) node;
+            fps.add(formalParamNode);
+            // System.out.println("Found decl of FormalParamNode=="+symbolNode.getName());
+            fps.add(formalParamNode);
+            return;
+        }
 
-      throw new Exception("Unhandled case: "+node.getClass());
+        throw new Exception("Unhandled case: " + node.getClass());
 
-  }
-  }
+    }
+}
 
 //http://beginnersbook.com/2013/12/hashmap-in-java-with-example/

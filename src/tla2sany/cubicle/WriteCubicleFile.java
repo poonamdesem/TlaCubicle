@@ -80,29 +80,43 @@ public class WriteCubicleFile
          }
 
      }
-     // Translate Initialization section
-         String initStr = "init{";
+     // Translation of Init section start here
+         String initStr = "";
          //writer.write(initStr);
+         Object objVal = null;
+         Object objKey = null;
+         String strTowrite="";
+         String strTowrite1="";
+         String initParam="";
+         String initParam1="";
+         HashMap collectInitVar = new HashMap();
          Set initSet = initHmap.entrySet();
          Iterator initIt = initSet.iterator();
          while(initIt.hasNext()) { // list of conjuct in Init
              Map.Entry mentry = (Map.Entry) initIt.next();
-
+             objVal =mentry.getValue();
+             objKey =mentry.getKey();
              if (mentry.getValue() instanceof OpApplNode) { // for function
                  OpApplNode node1 = (OpApplNode) mentry.getValue(); //get function
                  SymbolNode node2 = node1.getOperator(); //$FcnConstructor
+                 FormalParamNode[][] formalParamNodes = node1.getBdedQuantSymbolLists();
+                 String initId = "";
+                // for(int i=0;i<=formalParamNodes[0].length;i++) {
+                     for (int j = 0; j < formalParamNodes[0].length; j++) {
+                         SymbolNode symbolNode = (SymbolNode) formalParamNodes[0][j];
+                         collectInitVar.put(symbolNode.getName(),symbolNode.getName());
+                         initId = initId.concat(String.valueOf(symbolNode.getName()) + ",");
+                     }
+                 // }
+                if (initId!=null){
+                     initParam = initId.substring(0, initId.length()-1);
+                    // initStr = "init("+initParam+"){";
 
-                 ExprOrOpArgNode[] setFcns = node1.getArgs();
+                 }
+
+                /* ExprOrOpArgNode[] setFcns = node1.getArgs();
                  ExprNode setf = (ExprNode) setFcns[0];
                  StringNode stringNode=(StringNode)setf;// get value i.e "working"
-                FormalParamNode[][] formalParamNodes = node1.getBdedQuantSymbolLists();
-                 String initId = "";
-                 for(int i=0;i<formalParamNodes[0].length;i++){
-                     SymbolNode symbolNode = (SymbolNode) formalParamNodes[0][i];
-                     initId = initId.concat(String.valueOf(symbolNode.getName())+",");
-                 }
-                 System.out.println("expr  "+initId);
-
                  ExprNode[] exprNodes = node1.getBdedQuantBounds();
                  if (exprNodes[0] instanceof OpApplNode) { // getting RM
                      OpApplNode node3 = (OpApplNode) exprNodes[0];
@@ -116,38 +130,41 @@ public class WriteCubicleFile
                     System.out.println(exprNode.getName());
 
                 }
-                // String initStr="";
-                if (initId!=null){
-                   String str = initId.substring(0, initId.length()-1);
-                     initStr = "init("+str+"){";
-
-                }else {
-                     initStr = "init{";
-                }
                  String initStr1 = mentry.getKey()+"="+stringNode.getRep();
-                 //writer.write(initStr);
                  writer.write("\n");
-                 writer.write(initStr1);
+                 writer.write(initStr1);*/
 
              }
 
-             if(mentry.getValue() instanceof StringNode){
-                 StringNode stringNode = (StringNode) mentry.getValue();
-                 String initStr1 = mentry.getKey()+"="+stringNode.getRep();
-                 writer.write(initStr1);
-
-             }
+             strTowrite =  strTowrite.concat(getInitList(objVal,objKey,initParam));
+             strTowrite1 = strTowrite.substring(0, strTowrite.length()-3); // removing && at the end
 
          }
-         writer.write(initStr);
+         Set hset = collectInitVar.entrySet();
+         Iterator i = hset.iterator();
+         // Display elements
+         while(i.hasNext()) {
+             Map.Entry me = (Map.Entry)i.next();
+             initStr = initStr.concat(me.getValue() + ",");
+         }
+         if(!hset.isEmpty()){
+             initParam1 = initStr.substring(0, initStr.length()-1);
+             initStr = "init("+initParam1+"){";
+         }else {
+             initStr = "init{";
 
+         }
 
+         writer.write(initStr); // write init()
+
+         writer.write(strTowrite1);
 
          writer.write("}");
          writer.write("\n");
 
      writer.flush();
      writer.close();
+
 	 }
 	 catch (IOException e) {
 			e.printStackTrace();
@@ -155,6 +172,27 @@ public class WriteCubicleFile
 	 }
 
     }
+
+     private static String getInitList(Object objVal, Object objKey,String initParam) {
+
+         if(objVal instanceof StringNode){
+             StringNode stringNode = (StringNode) objVal;
+             String initStr1 = objKey+"="+stringNode.getRep()+" && ";
+             return  initStr1;
+         }
+         if (objVal instanceof OpApplNode) { // for function
+             OpApplNode node1 = (OpApplNode) objVal; //get function
+             SymbolNode node2 = node1.getOperator(); //$FcnConstructor
+             ExprOrOpArgNode[] setFcns = node1.getArgs();
+             ExprNode setf = (ExprNode) setFcns[0];
+             StringNode stringNode=(StringNode)setf;// get value i.e "working"
+             String initStr1 = objKey+"["+initParam+"]="+stringNode.getRep()+" && ";
+            return initStr1;
+         } else{
+             return  null;
+         }
+     }
+
      private static String getProcList(ExprNode setf) {
          if (setf instanceof OpApplNode) {
              OpApplNode node3 = (OpApplNode) setf;
@@ -169,6 +207,7 @@ public class WriteCubicleFile
              String str = procArr.substring(0, procArr.length()-1); // removing , at the end
              return str;
          }
+
          else {
              return null;
          }

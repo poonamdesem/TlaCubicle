@@ -122,7 +122,9 @@ public class CubicleExporter {
         Vector <OpDeclNode> list = new Vector <OpDeclNode>();
         Vector <FormalParamNode> fps = new Vector <FormalParamNode>();
         HashMap <UniqueString, OpApplNode> hmap = new HashMap <>();
-        HashMap<UniqueString,ExprNode> initHmap =new HashMap <>();
+        HashMap <UniqueString, ExprNode> initHmap = new HashMap <>();
+        HashMap <UniqueString, OpApplNode> hnext = new HashMap <>();
+
         for (int i = 0; i < arrOpt.length; i++) {
             if (arrOpt[i].getName().equals("TypeOK")) {
                 findVariableDecls(arrOpt[i], hmap);
@@ -130,14 +132,92 @@ public class CubicleExporter {
             if (arrOpt[i].getName().equals("Init")) {
                 findInitialization(arrOpt[i], initHmap);
             }
+            if (arrOpt[i].getName().equals("Next")) {
+                findNext(arrOpt[i], hnext);
+            }
+
             // findDecls(arrOpt[i].getBody(),list,fps);
             // findDecls(arrOpt[i].getBody(),arrOpt[i].getName(),list,fps);
             // System.out.println(arrOpt[i].getName());
         }
-        WriteCubicleFile.Write(CubicleOutFile,hmap,initHmap);
+        WriteCubicleFile.Write(CubicleOutFile, hmap, initHmap,hnext);
     }
 
-    private static void findInitialization(OpDefNode opDefNode, HashMap<UniqueString, ExprNode> initHmap) throws Exception{
+    private static void findNext(OpDefNode opDefNode, HashMap <UniqueString, OpApplNode> hnext) {
+        LevelNode node = opDefNode.getBody();
+        String nextId = "";
+        String nextParam = "";
+        Boolean flag=true;
+
+       // HashMap hnext = new HashMap();
+
+        if (node instanceof OpApplNode) {
+            OpApplNode node1 = (OpApplNode) node;
+            ExprOrOpArgNode[] disjList = node1.getArgs();
+            for (int i = 0; i < disjList.length; i++) { // get outer disList in Next
+                OpApplNode opApplNode = (OpApplNode) disjList[i];
+               // System.out.println("String1 == " + opApplNode.getOperator().getName());
+                 hnext.put(opApplNode.getOperator().getName(), opApplNode);
+                if (opApplNode.getOperator().getName().equals("\\lor")){
+                    hnext.remove(opApplNode.getOperator().getName()); // "\\lor" from hashmap
+
+                    ExprOrOpArgNode[] argNode = opApplNode.getArgs();
+                    for (int j = 0; j < argNode.length; j++) {
+                        if (argNode[j] instanceof OpApplNode) {
+                            OpApplNode opApplNode1 = (OpApplNode) argNode[j];
+                           // System.out.println("String2 == " + opApplNode1.getOperator().getName());
+                             hnext.put(opApplNode1.getOperator().getName(), opApplNode1);
+                        }
+                    }
+                }
+                if (opApplNode.getOperator().getName().equals("$BoundedExists")) {
+                    hnext.remove(opApplNode.getOperator().getName()); // remove $BoundedExists from hashmap
+                    FormalParamNode[][] formalParamNodes = opApplNode.getBdedQuantSymbolLists(); //get existential parameter rm
+                    for (int j = 0; j < formalParamNodes[0].length; j++) {
+                        SymbolNode symbolNode = (SymbolNode) formalParamNodes[0][j];
+                        nextId = nextId.concat(String.valueOf(symbolNode.getName()) + ",");
+                    }
+                    if (nextId != null) {
+                        nextParam = nextId.substring(0, nextId.length() - 1);
+                    }
+                    ExprOrOpArgNode[] argNode1 = opApplNode.getArgs();
+                    for (int k = 0; k < argNode1.length; k++) {
+                        if (argNode1[k] instanceof OpApplNode) {
+                            OpApplNode opApplNode2 = (OpApplNode) argNode1[k];
+                            ExprOrOpArgNode[] exprOrOpArgNodes = opApplNode2.getArgs();
+                            for (int l = 0; l < exprOrOpArgNodes.length; l++) {
+                                OpApplNode opApplNode1 = (OpApplNode) exprOrOpArgNodes[l];
+                                    hnext.put(opApplNode1.getOperator().getName(), opApplNode1);
+                                //System.out.println("String3 == " + opApplNode1.getOperator().getName());
+                            }
+                        }
+                    }
+
+                }
+                 /*   ExprNode[] exprNode1 = opApplNode.getBdedQuantBounds(); // getting RM in Next
+                    FormalParamNode[][] formalParamNodes = opApplNode.getBdedQuantSymbolLists(); //get existential parameter rm
+                    for (int j = 0; j < formalParamNodes[0].length; j++) {
+                        SymbolNode symbolNode = (SymbolNode) formalParamNodes[0][j];
+                        nextId = nextId.concat(String.valueOf(symbolNode.getName()) + ",");
+                    }
+                    if (nextId != null) {
+                        nextParam = nextId.substring(0, nextId.length() - 1);
+                    }*/
+
+            }
+            /*Set hset = hnext.entrySet();
+            Iterator it = hset.iterator();
+            while (it.hasNext()) {
+                Map.Entry me = (Map.Entry) it.next();
+
+                System.out.println("value=" + me.getValue()+" key=" + me.getKey());
+            }*/
+
+        }
+
+    }
+
+    private static void findInitialization(OpDefNode opDefNode, HashMap <UniqueString, ExprNode> initHmap) throws Exception {
         LevelNode node = opDefNode.getBody();
         if (node instanceof OpApplNode) {
             OpApplNode node1 = (OpApplNode) node;
@@ -148,10 +228,10 @@ public class CubicleExporter {
                 ExprOrOpArgNode[] argNode = opApplNode.getArgs();
                 OpApplNode opApplNode1 = (OpApplNode) argNode[0];
                 //System.out.print(argNode[1]); // till here same as findVariableDecls method, can be put into switch case of single method
-                if (argNode[1] instanceof ExprNode){
+                if (argNode[1] instanceof ExprNode) {
                     ExprNode exprNode = (ExprNode) argNode[1];
                     initHmap.put(opApplNode1.getOperator().getName(), exprNode);
-                }else {
+                } else {
                     throw new Exception("Unhandled case: " + argNode[1].getClass());
 
                 }

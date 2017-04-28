@@ -9,14 +9,13 @@
 ***************************************************************************/
 package tla2sany.cubicle ;
 import tla2sany.semantic.*;
-import tla2tex.Symbol;
 import util.UniqueString;
 
 import java.io.*;
 import java.util.*;
 
 public class WriteCubicleFile
- { public static void Write(String fileName,HashMap <UniqueString, OpApplNode> hmap, HashMap <UniqueString, ExprNode> initHmap)
+ { public static void Write(String fileName, HashMap <UniqueString, OpApplNode> hmap, HashMap <UniqueString, ExprNode> initHmap, HashMap <UniqueString, OpApplNode> hnext)
     {
 	 try{
 	 File file = new File(fileName);
@@ -101,39 +100,14 @@ public class WriteCubicleFile
                  SymbolNode node2 = node1.getOperator(); //$FcnConstructor
                  FormalParamNode[][] formalParamNodes = node1.getBdedQuantSymbolLists();
                  String initId = "";
-                // for(int i=0;i<=formalParamNodes[0].length;i++) {
                      for (int j = 0; j < formalParamNodes[0].length; j++) {
                          SymbolNode symbolNode = (SymbolNode) formalParamNodes[0][j];
                          collectInitVar.put(symbolNode.getName(),symbolNode.getName());
                          initId = initId.concat(String.valueOf(symbolNode.getName()) + ",");
                      }
-                 // }
                 if (initId!=null){
                      initParam = initId.substring(0, initId.length()-1);
-                    // initStr = "init("+initParam+"){";
-
                  }
-
-                /* ExprOrOpArgNode[] setFcns = node1.getArgs();
-                 ExprNode setf = (ExprNode) setFcns[0];
-                 StringNode stringNode=(StringNode)setf;// get value i.e "working"
-                 ExprNode[] exprNodes = node1.getBdedQuantBounds();
-                 if (exprNodes[0] instanceof OpApplNode) { // getting RM
-                     OpApplNode node3 = (OpApplNode) exprNodes[0];
-                     System.out.println("expr  "+node3.getOperator().getName());
-
-                 }
-                 if (node2 instanceof OpDefNode) {
-                     System.out.println("in if");
-                     OpDefNode opDef1 = (OpDefNode) node2;
-                     SymbolNode exprNode = (SymbolNode) opDef1;
-                    System.out.println(exprNode.getName());
-
-                }
-                 String initStr1 = mentry.getKey()+"="+stringNode.getRep();
-                 writer.write("\n");
-                 writer.write(initStr1);*/
-
              }
 
              strTowrite =  strTowrite.concat(getInitList(objVal,objKey,initParam));
@@ -160,9 +134,36 @@ public class WriteCubicleFile
          writer.write(strTowrite1);
 
          writer.write("}");
-         writer.write("\n");
+         writer.write("\n"); //  Translation of Init section end here
 
-     writer.flush();
+      // Translation of Actions start here
+         Set hActionset = hnext.entrySet();
+         Iterator it = hActionset.iterator();
+         String nextId="";
+         String nextParam="";
+         String actionName="";
+         while (it.hasNext()) {
+             Map.Entry me = (Map.Entry) it.next();
+             OpApplNode opApplNode = (OpApplNode) me.getValue();
+             ExprOrOpArgNode[] exprOrOpArgNode = opApplNode.getArgs();
+             if(exprOrOpArgNode.length>0){
+                 for (int l=0;l<exprOrOpArgNode.length;l++){
+                     OpApplNode opApplNode1 = (OpApplNode) exprOrOpArgNode[l];
+                     actionName = "transition "+me.getKey()+"("+opApplNode1.getOperator().getName()+")";
+                 }
+             }else{
+                 actionName = "transition "+me.getKey()+"()";
+
+             }
+
+             getPrimedVar(opApplNode);
+
+
+             writer.write(actionName);
+             writer.write("\n");
+         }
+
+         writer.flush();
      writer.close();
 
 	 }
@@ -172,6 +173,65 @@ public class WriteCubicleFile
 	 }
 
     }
+
+     private static void getPrimedVar(OpApplNode opApplNode) {
+     if(opApplNode.getOperator().getName().equals("Abort")){
+         SymbolNode opNode = opApplNode.getOperator();
+         if(opNode instanceof OpDefNode){
+             OpDefNode defNode = (OpDefNode)opNode;
+             LevelNode node = defNode.getBody();
+             OpApplNode node1 = (OpApplNode) node;
+             ExprOrOpArgNode[] args = node1.getArgs();
+             for (int i = 0;i<args.length;i++){ // list of conjunction in action
+                 OpApplNode conj = (OpApplNode) args[i];
+                 OpApplNode opApplNode1 = (OpApplNode)conj.getArgs()[0];
+                 SymbolNode symbolNode = opApplNode1.getOperator();
+                 UniqueString opName = symbolNode.getName();
+
+                 if(opName.equals("'")){
+                     OpApplNode actionVars = (OpApplNode) conj.getArgs()[0];
+                     UniqueString primedVar = getVar(actionVars.getArgs()[0]);
+                 }
+                 else {
+                     System.out.println("Unprimed var=="+opName);
+                 }
+
+
+               /* ExprOrOpArgNode[] actionArgs =conj.getArgs();
+                for (int j=0;j<actionArgs.length;j++){
+                     OpApplNode actionVars = (OpApplNode) actionArgs[i]; //get primed variables
+                     SymbolNode symbolNode1= actionVars.getOperator();
+                     UniqueString opName1 = symbolNode.getName();
+                     //System.out.println("body="+actionVars.getArgs().length);
+                    if(opName.equals("'")){
+                        UniqueString primedVar = getVar(actionVars.getArgs()[0]);
+                    }
+
+                 } */
+
+             }
+
+         }
+
+     }
+
+   }
+
+     private static UniqueString getVar(SemanticNode node) {
+         //System.out.println("node=="+node);
+
+         if (node instanceof OpApplNode) {
+             SymbolNode opNode = ((OpApplNode) node).getOperator();
+             System.out.println("primed=="+opNode.getName());
+
+         }else{
+
+
+         }
+
+         return null;
+
+     }
 
      private static String getInitList(Object objVal, Object objKey,String initParam) {
 
@@ -192,7 +252,6 @@ public class WriteCubicleFile
              return  null;
          }
      }
-
      private static String getProcList(ExprNode setf) {
          if (setf instanceof OpApplNode) {
              OpApplNode node3 = (OpApplNode) setf;

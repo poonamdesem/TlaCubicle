@@ -124,6 +124,13 @@ public class CubicleExporter {
         HashMap <UniqueString, OpApplNode> hmap = new HashMap <>();
         HashMap <UniqueString, ExprNode> initHmap = new HashMap <>();
         HashMap <UniqueString, OpApplNode> hnext = new HashMap <>();
+        LevelNode levelNode=null;
+
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Enetr Spec name to create unsafe state");
+        String specInput = scanner.next();
+        System.out.println("Input=="+specInput);
+
 
         for (int i = 0; i < arrOpt.length; i++) {
             if (arrOpt[i].getName().equals("TypeOK")) {
@@ -135,22 +142,24 @@ public class CubicleExporter {
             if (arrOpt[i].getName().equals("Next")) {
                 findNext(arrOpt[i], hnext);
             }
+            if(arrOpt[i].getName().equals(specInput)){
+                levelNode = arrOpt[i].getBody();
+            }
 
             // findDecls(arrOpt[i].getBody(),list,fps);
             // findDecls(arrOpt[i].getBody(),arrOpt[i].getName(),list,fps);
             // System.out.println(arrOpt[i].getName());
         }
-        WriteCubicleFile.Write(CubicleOutFile, hmap, initHmap,hnext);
+        WriteCubicleFile.Write(CubicleOutFile, hmap, initHmap,hnext,levelNode);
+
     }
+
 
     private static void findNext(OpDefNode opDefNode, HashMap <UniqueString, OpApplNode> hnext) {
         LevelNode node = opDefNode.getBody();
         String nextId = "";
         String nextParam = "";
         Boolean flag=true;
-
-       // HashMap hnext = new HashMap();
-
         if (node instanceof OpApplNode) {
             OpApplNode node1 = (OpApplNode) node;
             ExprOrOpArgNode[] disjList = node1.getArgs();
@@ -233,10 +242,8 @@ public class CubicleExporter {
                     initHmap.put(opApplNode1.getOperator().getName(), exprNode);
                 } else {
                     throw new Exception("Unhandled case: " + argNode[1].getClass());
-
                 }
             }
-
         }
 
     }

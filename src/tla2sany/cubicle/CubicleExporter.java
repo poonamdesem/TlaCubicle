@@ -151,11 +151,20 @@ public class CubicleExporter {
             // System.out.println(arrOpt[i].getName());
         }
         WriteCubicleFile.Write(CubicleOutFile, hmap, initHmap,hnext,levelNode);
-
+        /*String command= "/usr/bin/xterm";
+        String command1= "cd /home/poonam/TCtest";
+        Runtime rt = Runtime.getRuntime();
+        Process pr = rt.exec(command);
+        Process pr1 = rt.exec(command1);*/
     }
 
+    /*
+    findNext method iterate through outer disList of Next and return the hnext hashmap containing the action name in key
+    and opAppNode(action name with parameter) in value.
 
-    private static void findNext(OpDefNode opDefNode, HashMap <UniqueString, OpApplNode> hnext) {
+     */
+
+    private static void findNext(OpDefNode opDefNode, HashMap <UniqueString, OpApplNode> hnext) throws Exception {
         LevelNode node = opDefNode.getBody();
         String nextId = "";
         String nextParam = "";
@@ -165,7 +174,6 @@ public class CubicleExporter {
             ExprOrOpArgNode[] disjList = node1.getArgs();
             for (int i = 0; i < disjList.length; i++) { // get outer disList in Next
                 OpApplNode opApplNode = (OpApplNode) disjList[i];
-               // System.out.println("String1 == " + opApplNode.getOperator().getName());
                  hnext.put(opApplNode.getOperator().getName(), opApplNode);
                 if (opApplNode.getOperator().getName().equals("\\lor")){
                     hnext.remove(opApplNode.getOperator().getName()); // "\\lor" from hashmap
@@ -182,8 +190,10 @@ public class CubicleExporter {
                 if (opApplNode.getOperator().getName().equals("$BoundedExists")) {
                     hnext.remove(opApplNode.getOperator().getName()); // remove $BoundedExists from hashmap
                     FormalParamNode[][] formalParamNodes = opApplNode.getBdedQuantSymbolLists(); //get existential parameter rm
+
                     for (int j = 0; j < formalParamNodes[0].length; j++) {
                         SymbolNode symbolNode = (SymbolNode) formalParamNodes[0][j];
+
                         nextId = nextId.concat(String.valueOf(symbolNode.getName()) + ",");
                     }
                     if (nextId != null) {
@@ -196,8 +206,14 @@ public class CubicleExporter {
                             ExprOrOpArgNode[] exprOrOpArgNodes = opApplNode2.getArgs();
                             for (int l = 0; l < exprOrOpArgNodes.length; l++) {
                                 OpApplNode opApplNode1 = (OpApplNode) exprOrOpArgNodes[l];
+                                if(opApplNode1.getOperator().getName().equals("\\lor")){
+                                    throw new  Exception("Next is not in required format");
+                                }else{
                                     hnext.put(opApplNode1.getOperator().getName(), opApplNode1);
-                                //System.out.println("String3 == " + opApplNode1.getOperator().getName());
+                                    //System.out.println("String3 == " + opApplNode1.getOperator().getName()+"=="+opApplNode1);
+
+
+                                }
                             }
                         }
                     }

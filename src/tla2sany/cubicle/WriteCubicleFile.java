@@ -19,7 +19,7 @@ import java.io.*;
 import java.util.*;
 
 public class WriteCubicleFile {
-    public static void Write(String fileName, HashMap <UniqueString, OpApplNode> hmap, HashMap <UniqueString, ExprNode> initHmap, HashMap <UniqueString, OpApplNode> hnext, LevelNode levelNode) throws Exception {
+    public static void Write(String fileName, HashMap <UniqueString, OpApplNode> hmap, HashMap <UniqueString, ExprNode> initHmap, HashMap <UniqueString, OpApplNode> hnext, LevelNode[] levelNode) throws Exception {
         try {
             File file = new File(fileName);
             file.createNewFile(); // creates the file
@@ -32,11 +32,12 @@ public class WriteCubicleFile {
             So, hmap sets iterated twice here. In first iteration it will generate type declaration and then it will assign that type to respective array
             or var in second iteration.
              */
-
             Set set = hmap.entrySet(); //set for array or var declaration
             Iterator iterator = set.iterator();
             Set typeset = hmap.entrySet(); //set for type declaration
             Iterator typeit = typeset.iterator();
+            String typeD=null;
+
             while (typeit.hasNext()) { // list of conjuct in TypeOK invariant for type declaration
                 Map.Entry mentry = (Map.Entry) typeit.next();
                 if (mentry.getValue() instanceof OpApplNode) {
@@ -49,9 +50,14 @@ public class WriteCubicleFile {
                             OpApplNode expr1 = (OpApplNode) expr;
                             ExprOrOpArgNode[] exprOrOpArgNodes = expr1.getArgs();//$setenumerate
                             String varList = SetEnumerators(exprOrOpArgNodes);
-                            String typeDecl = "type " + lowerFirstL(OpNode.getName()) + " = " + varList;
-                            writer.write(typeDecl);
-                            writer.write("\n");
+                            String typeDecl = "type " + OpNode.getName().toString().toLowerCase() + " = " + varList;
+                            if(OpNode.getName().toString()!=typeD ){ // to handle duplicate typeDeclaration
+                                writer.write(typeDecl);
+                                writer.write("\n");
+                                typeD = OpNode.getName().toString();
+
+                            }
+
                         }
                     }
                     if (argNode.length > 0) { //setFunction
@@ -67,14 +73,17 @@ public class WriteCubicleFile {
                                         OpApplNode expr1 = (OpApplNode) expr;
                                         ExprOrOpArgNode[] exprOrOpArgNodes = expr1.getArgs();
                                         String varList = SetEnumerators(exprOrOpArgNodes);
-                                        String typeDecl = "type " + lowerFirstL(((OpApplNode) setf1).getOperator().getName()) + "=" + varList;
-                                        writer.write(typeDecl);
-                                        writer.write("\n");
-                                        writer.write("\n");
+                                        String typeDecl = "type " + ((OpApplNode) setf1).getOperator().getName().toString().toLowerCase() + "=" + varList;
+                                        if(((OpApplNode) setf1).getOperator().getName().toString()!=typeD ) { // to handle duplicate typeDeclaration
+                                            writer.write(typeDecl);
+                                            writer.write("\n");
+                                            writer.write("\n");
+                                            typeD = ((OpApplNode) setf1).getOperator().getName().toString();
+                                        }
 
-                                    } else {
+                                    } /*else {
                                         throw new Exception("TypeOK invariant is not in required format");
-                                    }
+                                    }*/
 
                                 }
 
@@ -91,12 +100,17 @@ public class WriteCubicleFile {
                     ExprOrOpArgNode[] argNode = node.getArgs();
                     SymbolNode OpNode = node.getOperator();
                     if (argNode.length == 0) {
-                        if (OpNode instanceof OpDefNode) {
-                            SemanticNode expr = ((OpDefNode) OpNode).getBody();
-                            String varDecl = "var " + mentry.getKey() + ":" + lowerFirstL(OpNode.getName());
+                       //System.out.println("key "+mentry.getKey()+"  value=="+lowerFirstL(OpNode.getName())+" class "+OpNode.getClass());
+                        if ((OpNode instanceof OpDefNode) || (OpNode instanceof OpDeclNode) ) {
+                           // SemanticNode expr = ((OpDefNode) OpNode).getBody();
+                            //String varDecl = "var " + mentry.getKey() + ":" + lowerFirstL(OpNode.getName());
+                            String varDecl = "var " + mentry.getKey() + ":" + (OpNode.getName().toString().toLowerCase());
                             writer.write("\n");
                             writer.write(varDecl);
                             writer.write("\n");
+                        }
+                        if(OpNode instanceof OpDeclNode){
+
                         }
                     }
                     if (argNode.length > 0) { //setFunction
@@ -105,7 +119,8 @@ public class WriteCubicleFile {
                             ExprNode setf = (ExprNode) setFcns[0]; // times
                             ExprNode setf1 = (ExprNode) setFcns[1]; //$setenumerate
                             String procList = getProcList(setf);
-                            String arrDecl = "array " + capitalizeFirstL(UniqueString.uniqueStringOf(mentry.getKey().toString())) + "[" + procList + "]:" + lowerFirstL(((OpApplNode) setf1).getOperator().getName());
+                            String typeDef = (((OpApplNode) setf1).getOperator().getName().toString().equals("BOOLEAN")) ? "bool":((OpApplNode) setf1).getOperator().getName().toString().toLowerCase(); // for boolean assign bool otherwise type definition
+                            String arrDecl = "array " + capitalizeFirstL(UniqueString.uniqueStringOf(mentry.getKey().toString())) + "[" + procList + "]:" + typeDef;
                             writer.write("\n");
                             writer.write(arrDecl);
                             writer.write("\n");
@@ -150,10 +165,14 @@ public class WriteCubicleFile {
 
                 }
 
-                if(getInitList(objVal, objKey, initParam)!=null){
+                if(getInitList(objVal, objKey, initParam)!=null ){
+                    if(getInitList(objVal, objKey, initParam).equals("Ignore")){
+                        break;
+                    }
                     strTowrite = strTowrite.concat(getInitList(objVal, objKey, initParam)); //getInitList return init's values list i.e coordinator = Init
                     strTowrite1 = strTowrite.substring(0, strTowrite.length() - 3); // removing && at the end
                 }
+
                 else{
                     throw new Exception("Init is not in required format, value should be FuncConstructor or String");
                 }
@@ -185,57 +204,79 @@ public class WriteCubicleFile {
             //  Translation of Init section end here
 
             // Translation for unsafe state begin here
+
             if (levelNode != null) {
-                String specvalues = "";
-                String specvalues1 = "";
-                String param = "";
-                if (levelNode instanceof OpApplNode) {
-                    OpApplNode node = (OpApplNode) levelNode;
-                    FormalParamNode[][] formalParamNodes = node.getBdedQuantSymbolLists(); //get quantifier parameter rm
-                    if (formalParamNodes != null) {
-                        for (int j = 0; j < formalParamNodes[0].length; j++) {
-                            SymbolNode symbolNode = formalParamNodes[0][j];
-                            param = param.concat(String.valueOf(symbolNode.getName()).toLowerCase() + " ");
-
-                        }
-                       // String quantfParam = param.substring(0, param.length() - 1);
-                        writer.write("unsafe(" + param + ")");
-                        writer.write("\n");
-                        writer.write("{");
-                        writer.write("\n");
-                    }
-                    ExprOrOpArgNode[] args = node.getArgs();
-                    ExprNode exprNode = (ExprNode) args[0];
-                    if (exprNode instanceof OpApplNode) {
-                        OpApplNode opApplNode = (OpApplNode) exprNode;
-                        ExprNode exprNode1 = (ExprNode) opApplNode.getArgs()[0]; // get rid of negation
-                        if (getVar(exprNode1).equals("$ConjList")) {
-                            OpApplNode applNode = (OpApplNode) exprNode1;
-                            ExprOrOpArgNode[] argNodes = applNode.getArgs();
-                            for (int k = 0; k < argNodes.length; k++) {
-                                OpApplNode conj = (OpApplNode) argNodes[k];
-                                OpApplNode opApplNode1 = (OpApplNode) conj.getArgs()[0];
-                                UniqueString val1 = getVar(conj.getArgs()[1]);
-                                UniqueString vari = UniqueString.uniqueStringOf(processOperator(opApplNode1)+ "=" + capitalizeFirstL(val1)); // return variable name with parameter i.e rmState[rm]
-                                specvalues = specvalues.concat(String.valueOf(vari) + " && ");
+                for (int l = 0; l < levelNode.length; l++) {
+                    String specvalues = "";
+                    String specvalues1 = "";
+                    String param = "";
+                    if (levelNode[l] instanceof OpApplNode) {
+                        OpApplNode node = (OpApplNode) levelNode[l];
+                        FormalParamNode[][] formalParamNodes = node.getBdedQuantSymbolLists(); //get universal quantifier parameter rm
+                     //   System.out.println("formalParamNodes=="+formalParamNodes[0][0]);
+                        if (formalParamNodes != null) {
+                            for (int j = 0; j < formalParamNodes[0].length; j++) {
+                                SymbolNode symbolNode = formalParamNodes[0][j];
+                                param = param.concat(String.valueOf(symbolNode.getName()).toLowerCase() + " ");
                             }
-                            specvalues1 = specvalues.substring(0, specvalues.length() - 4);
-                            writer.write(specvalues1);
+                            writer.write("unsafe(" + param + ")");
+                            writer.write("\n");
+                            writer.write("{");
+                            writer.write("\n");
+                        }
+                        else {
+                            throw new Exception("Specification should start with universal quntification");
+                           // Assert.fail("qsdsfs");
+                        }
+                        ExprOrOpArgNode[] args = node.getArgs();
+                        ExprNode exprNode = (ExprNode) args[0]; // RHS of Specifications/invariants
+                        if (exprNode instanceof OpApplNode) {
+                            OpApplNode opApplNode = (OpApplNode) exprNode;
+                            if (opApplNode.getOperator().getName().equals("\\lnot")) {
+                                ExprNode exprNode1 = (ExprNode) opApplNode.getArgs()[0]; // get rid of negation because of (ExprNode)
+                                OpApplNode applNode = (OpApplNode) exprNode1;
+                                ExprOrOpArgNode[] argNodes = applNode.getArgs();
+                                    for (int k = 0; k < argNodes.length; k++) {
+                                        OpApplNode conj = (OpApplNode) argNodes[k];
+                                        OpApplNode opApplNode1 = (OpApplNode) conj.getArgs()[0];
+                                        UniqueString val1 = getVar(conj.getArgs()[1]);
+
+                                        if((getVar(applNode).equals("\\land")) && (k==0)){  // to get rid of rm1#rm2 in spec
+                                            OpApplNode opApplNode2 = (OpApplNode) conj.getArgs()[1];
+                                            ExprOrOpArgNode[] opApplNode3 = opApplNode2.getArgs();
+                                            opApplNode1=(OpApplNode) opApplNode3[0];
+                                            val1 = getVar(opApplNode3[1]);
+
+                                        }
+                                        UniqueString vari = UniqueString.uniqueStringOf(processOperator(opApplNode1) + "=" + capitalizeFirstL(val1)); // return variable name with parameter i.e rmState[rm]
+                                        specvalues = specvalues.concat(String.valueOf(vari) + " && ");
+                                    }
+                                specvalues1 = specvalues.substring(0, specvalues.length() - 4);
+                                writer.write(specvalues1);
+                            }
+                            if (opApplNode.getOperator().getName().equals("=>")) {
+                                ExprOrOpArgNode[] argNodes = opApplNode.getArgs();
+                               // System.out.print(argNodes.length+" = "+argNodes[0]+" "+argNodes[1]);
+                                throw new Exception(" Sorry, We have not handle the implication case yet ! :( ");
+
+                            }
+
+                            writer.write("\n");
+                            writer.write("}");
+                            writer.write("\n");
+
                         }
 
                     }
-                    writer.write("\n");
-
-                    writer.write("}");
-                    writer.write("\n");
+                    else {
+                        throw new Exception("Specification name is not found");
+                    }
                 }
-            } else {
-                throw new Exception("Spec name is not correct/found");
             }
-
             // Translation for unsafe state end here
 
-            // Translation of Actions start here
+            // Translation of Actions(transitions) start here
+
             Set hActionset = hnext.entrySet();
             Iterator it = hActionset.iterator();
             String nextId = "";
@@ -280,8 +321,13 @@ public class WriteCubicleFile {
                     mentry = (Map.Entry) iterator1.next();
                     var = (UniqueString) mentry.getKey();
                     val = (UniqueString) mentry.getValue();
-                    reqStmt = reqStmt + " && " + var + "=" + capitalizeFirstL(val);
-                    //  System.out.println("key:"+mentry.getKey() + " value:" + mentry.getValue());
+                    if(Objects.equals(transitionparam1, val.toString())){
+                        val = UniqueString.uniqueStringOf(val.toString().toLowerCase());
+                    }else {
+                        val = UniqueString.uniqueStringOf(capitalizeFirstL(val));
+                    }
+                    reqStmt = reqStmt + " && " + var + "=" + val ;
+
                 }
                 reqStmt = reqStmt.substring(4); //remove && from the begining of the require String
                 writer.write("requires {" + reqStmt + "}");
@@ -297,17 +343,35 @@ public class WriteCubicleFile {
                     updateentry = (Map.Entry) upit.next();
                     updatevar = (UniqueString) updateentry.getKey();
                     updateval = (UniqueString) updateentry.getValue();
-                    //   System.out.println("key:"+updatevar + " value:" + updateval);
-                    writer.write(capitalizeFirstL(updatevar) + ":=" + capitalizeFirstL(updateval) + ";");
-                    writer.write("\n");
+                    String upvar = updatevar.toString();
+                    if(upvar.contains("[") || upvar.contains("]")){  // for array update
+                        Random r = new Random();
+                        char c = (char) (r.nextInt(26) + 'a');
+                        UniqueString vars = UniqueString.uniqueStringOf(upvar.substring(0,upvar.indexOf("[")));
+                        String args = upvar.substring(upvar.indexOf("[")+1,upvar.indexOf("]"));
+                        while (args.equals(String.valueOf(c))){
+                            r = new Random();
+                            c = (char) (r.nextInt(26) + 'a');
+                        }
+                      //  writer.write(capitalizeFirstL(vars)+"["+args + "]:=" + capitalizeFirstL(updateval) + ";");writer.write("\n");
+                        writer.write(capitalizeFirstL(vars)+"["+c+"]" + ":= case");writer.write("\n");
+                        writer.write("\t");  writer.write("| "+c+" = "+args+":" + capitalizeFirstL(updateval) );writer.write("\n");
+                        writer.write("\t");  writer.write("| _ "+":" + capitalizeFirstL(vars)+"["+c+"];" );writer.write("\n");
+                    }
+                    else {
+                        writer.write(capitalizeFirstL(updatevar) + ":=" + capitalizeFirstL(updateval) + ";");writer.write("\n");
+
+                    }
+
+                  /*  */
+
                 }
+
                 writer.write("}");
                 //writer.write("{" + updatevar + ":=" + updateval + ";}");
                 writer.write("\n");
                 writer.write("\n");
             }
-
-
 
             writer.flush();
             writer.close();
@@ -334,7 +398,10 @@ public class WriteCubicleFile {
         return null;
 
     }
+/*
+    getActionVar method returns two different HashMap containing primed and unprimed variable seperately.
 
+ */
     private static void getActionVar(OpApplNode opApplNode, HashMap <UniqueString, UniqueString> hmapUnprimed, HashMap <UniqueString, UniqueString> hactionmapPrimed) throws Exception {
         // if(opApplNode.getOperator().getName().equals("Commit")){
         // System.out.println("In Action===" + opApplNode.getOperator().getName());
@@ -354,38 +421,8 @@ public class WriteCubicleFile {
                     if (symbolNode.getArity() == 0) {
                         //hmapUnprimed.put(opName, String.valueOf(getStringVal(conj.getArgs()[1])));
                         hmapUnprimed.put(UniqueString.uniqueStringOf(capitalizeFirstL(opName)), getVar(conj.getArgs()[1]));
-
-                    }
-                    if (opName.equals("'")) { // for primed action
-                        OpApplNode actionVar = (OpApplNode) conj.getArgs()[0];
-                        UniqueString primedVar = getVar(actionVar.getArgs()[0]);
-                        if (conj.getArgs()[1] instanceof StringNode) {
-                            //UniqueString primedValue = UniqueString.uniqueStringOf(String.valueOf(getStringVal(conj.getArgs()[1] )));
-                            UniqueString primedValue = getVar(conj.getArgs()[1]);
-                            hactionmapPrimed.put(primedVar, primedValue);
-                        }
-                        if (conj.getArgs()[1] instanceof OpApplNode) {
-                            OpApplNode actionValue = (OpApplNode) conj.getArgs()[1];
-                            UniqueString primedValue = getVar(actionValue);
-                            if (primedValue.equals("$Except")) {
-                                ExprOrOpArgNode[] primedArgs = actionValue.getArgs();
-                                for(int j=0;j<primedArgs.length;j++){
-                                    if (getVar(primedArgs[j]).equals("$Pair")) {
-                                        OpApplNode opApplNode2 = (OpApplNode)primedArgs[j];
-                                        ExprOrOpArgNode[] exprOrOpArgNode = opApplNode2.getArgs(); //getting ![rm]="aborted" in exprOrOpArgNode[0]
-                                        OpApplNode opApplNode3 = (OpApplNode) exprOrOpArgNode[0];
-                                        ExprOrOpArgNode[] exprOrOpArgNode1 = opApplNode3.getArgs(); // get parameter in Except
-                                        UniqueString primedVariable = UniqueString.uniqueStringOf(primedVar + "[" + getVar(exprOrOpArgNode1[0]).toString().toLowerCase() + "]");
-                                        hactionmapPrimed.put(primedVariable, getVar(exprOrOpArgNode[1]));
-                                    }
-
-                                }
-                            }
-                        }
-
                     }
                     if (opName.equals("$FcnApply")) { //rmState[rm]
-
 
                         ExprOrOpArgNode[] argNode = opApplNode1.getArgs();
                         UniqueString unPrimedVar = getVar(argNode[0]);
@@ -407,6 +444,55 @@ public class WriteCubicleFile {
                         hmapUnprimed.put(unPrimedVariable, getVar(exp[0]).concat(UniqueString.uniqueStringOf(")")));
 
                     }
+                    if (opName.equals("'")) { // for primed action
+                        OpApplNode actionVar = (OpApplNode) conj.getArgs()[0];
+                        UniqueString primedVar = getVar(actionVar.getArgs()[0]);
+                        //System.out.println(getVar(conj.getArgs()[1])+"   "+conj.getArgs()[1].getClass());
+                        if (conj.getArgs()[1] instanceof StringNode) {
+                            UniqueString primedValue = getVar(conj.getArgs()[1]);
+                            hactionmapPrimed.put(primedVar, primedValue);
+                            /*if(primedVar.equals(primedValue)){
+                                break;
+                            }else {
+                                hactionmapPrimed.put(primedVar, primedValue);
+                            }*/
+
+                        }
+                        if (conj.getArgs()[1] instanceof OpApplNode) {
+                            OpApplNode actionValue = (OpApplNode) conj.getArgs()[1];
+                            UniqueString primedValue = getVar(actionValue);
+                            if (primedValue.equals("$Except")) {
+                                ExprOrOpArgNode[] primedArgs = actionValue.getArgs();
+                                for(int j=0;j<primedArgs.length;j++){
+                                    if (getVar(primedArgs[j]).equals("$Pair")) {
+                                        OpApplNode opApplNode2 = (OpApplNode)primedArgs[j];
+                                        ExprOrOpArgNode[] exprOrOpArgNode = opApplNode2.getArgs(); //getting ![rm]="aborted" in exprOrOpArgNode[0]
+                                        OpApplNode opApplNode3 = (OpApplNode) exprOrOpArgNode[0];
+                                        ExprOrOpArgNode[] exprOrOpArgNode1 = opApplNode3.getArgs(); // get parameter in Except
+                                        UniqueString primedVariable = UniqueString.uniqueStringOf(primedVar + "[" + getVar(exprOrOpArgNode1[0]).toString().toLowerCase() + "]");
+                                        hactionmapPrimed.put(primedVariable, getVar(exprOrOpArgNode[1]));
+                                    }
+
+                                }
+                            }
+                           else if(primedVar.equals(getVar(actionValue))){ // Unchanged variable would not be added to primed hashset
+                                break;
+                            }
+                            else { // for nondeterministic assignment to update variable
+                                hactionmapPrimed.put(primedVar, UniqueString.uniqueStringOf("."));
+
+                            }
+
+                            /*else {
+
+
+                            }*/
+
+
+                        }
+
+                    }
+
 
                 }
 
@@ -422,18 +508,47 @@ public class WriteCubicleFile {
 
     private static UniqueString getVar(SemanticNode node) {
         //System.out.println("node=="+node);
-
         if (node instanceof OpApplNode) {
+            UniqueString str=null;
             SymbolNode opNode = ((OpApplNode) node).getOperator();
-            return opNode.getName();
+            switch (opNode.getName().toString()){
+                case "TRUE": {
+                   str = UniqueString.uniqueStringOf("True");
+                   break;
+                }
+                case "FALSE": {
+                    str = UniqueString.uniqueStringOf("False");
+                    break;
+                }
+                default:{
+                    str = opNode.getName();
+                }
+            }
+            //String str = (opNode.getName().equals("FALSE")?"False":opNode.getName().toString());
+
+            return str;
 
         }
         if (node instanceof StringNode) {
             StringNode expr1 = (StringNode) node;
             StringValue val = new StringValue(expr1.getRep()); // String value returns string with double quotes
             String val1 = String.valueOf(val).replace("\"", "");
-            UniqueString value = UniqueString.uniqueStringOf(String.valueOf(val1));
-            return value;
+            switch (val1){
+                case "TRUE": {
+                    val1 = "True";
+                    break;
+                }
+                case "FALSE": {
+                    val1 = "False";
+                    break;
+                }
+                default:{
+                    val1 = val1;
+                }
+            }
+         //   UniqueString value = UniqueString.uniqueStringOf(String.valueOf(val1));
+
+            return UniqueString.uniqueStringOf(val1);
 
         }
 
@@ -443,7 +558,6 @@ public class WriteCubicleFile {
 
 
     private static String getInitList(Object objVal, Object objKey, String initParam) {
-
         if (objVal instanceof StringNode) {
             StringNode stringNode = (StringNode) objVal;
             String initStr1 = capitalizeFirstL(UniqueString.uniqueStringOf(String.valueOf(objKey))) + "=" + capitalizeFirstL(stringNode.getRep()) + " && ";
@@ -455,11 +569,20 @@ public class WriteCubicleFile {
             if(node2.equals("$FcnConstructor")){
                 ExprOrOpArgNode[] setFcns = node1.getArgs();
                 ExprNode setf = (ExprNode) setFcns[0];
-                StringNode stringNode = (StringNode) setf;// get value i.e "working"
-                String initStr1 = capitalizeFirstL(UniqueString.uniqueStringOf(String.valueOf(objKey))) + "[" + initParam + "]=" + capitalizeFirstL(stringNode.getRep()) + " && ";
+                String initStr1=null;
+                if(setf instanceof StringNode){
+                    StringNode stringNode = (StringNode) setf;// get value i.e "working"
+                    initStr1 = capitalizeFirstL(UniqueString.uniqueStringOf(String.valueOf(objKey))) + "[" + initParam + "]=" + capitalizeFirstL(stringNode.getRep()) + " && ";
+                }
+                if (setf instanceof OpApplNode){
+
+                    initStr1 = capitalizeFirstL(UniqueString.uniqueStringOf(String.valueOf(objKey))) + "[" + initParam + "]=" + capitalizeFirstL(getVar(setf)) + " && ";
+                }
                 return initStr1;
+            }else {
+                return "Ignore"; //Ignore if its not the Funconstructor such as /\ Turn \in PROC
+
             }
-            return null;
 
         } else {
             return null;
@@ -487,7 +610,8 @@ public class WriteCubicleFile {
     private static String SetEnumerators(ExprOrOpArgNode[] exprOrOpArgNodes) throws  Exception {
         String varList = "";
         for (int i = 0; i < exprOrOpArgNodes.length; i++) {
-            if (exprOrOpArgNodes[i] instanceof StringNode){
+
+            if (exprOrOpArgNodes[i] instanceof StringNode) {
                 StringNode expr1 = (StringNode) exprOrOpArgNodes[i];
                 if (i == 0) {
                     // varList = varList.concat(String.valueOf(expr1.getRep()));
@@ -498,9 +622,20 @@ public class WriteCubicleFile {
                     varList = varList.concat(" | " + String.valueOf(capitalizeFirstL(expr1.getRep())));
                 }
             }
-            else{
-                throw new  Exception("SetEnumerate is not in String format : "+exprOrOpArgNodes.getClass());
+            if(exprOrOpArgNodes[i] instanceof OpApplNode ){
+                if (i == 0) {
+                    varList = varList.concat(String.valueOf(getVar(exprOrOpArgNodes[i])));
+
+
+                } else {
+                    varList = varList.concat(" | " + String.valueOf(getVar(exprOrOpArgNodes[i])) );
+                }
             }
+
+           // }
+         /*  else{
+                throw new  Exception("SetEnumerate is not in String format : "+exprOrOpArgNodes.getClass());
+            } */
 
         }
         return varList;

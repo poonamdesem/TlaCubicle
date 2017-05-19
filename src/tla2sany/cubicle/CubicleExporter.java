@@ -124,12 +124,13 @@ public class CubicleExporter {
         HashMap <UniqueString, OpApplNode> hmap = new HashMap <>();
         HashMap <UniqueString, ExprNode> initHmap = new HashMap <>();
         HashMap <UniqueString, OpApplNode> hnext = new HashMap <>();
-        LevelNode levelNode=null;
 
         Scanner scanner = new Scanner(System.in);
         System.out.println("Enetr Spec name to create unsafe state");
         String specInput = scanner.next();
-        System.out.println("Input=="+specInput);
+        String[] specName = specInput.split(",");
+        LevelNode[] levelNode = new LevelNode[specName.length];
+
 
 
         for (int i = 0; i < arrOpt.length; i++) {
@@ -142,9 +143,13 @@ public class CubicleExporter {
             if (arrOpt[i].getName().equals("Next")) {
                 findNext(arrOpt[i], hnext);
             }
-            if(arrOpt[i].getName().equals(specInput)){
-                levelNode = arrOpt[i].getBody();
+            for (int k=0;k<specName.length;k++){ // specification name to create unsafe state
+                if(arrOpt[i].getName().equals(specName[k])){
+                    levelNode[k] = arrOpt[i].getBody();
+                }
+
             }
+
 
             // findDecls(arrOpt[i].getBody(),list,fps);
             // findDecls(arrOpt[i].getBody(),arrOpt[i].getName(),list,fps);

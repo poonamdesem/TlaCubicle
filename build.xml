@@ -59,11 +59,7 @@
 	<target name="default" depends="info" description="Default">
 		<antcall target="compile" inheritall="true" inheritrefs="true" />
 		<antcall target="compile-aj" inheritall="true" inheritrefs="true" />
-		<antcall target="compile-test" inheritall="true" inheritrefs="true" />
-		<antcall target="test" inheritall="true" inheritrefs="true" />
-		<antcall target="git-revision" inheritall="true" inheritrefs="true" />
 		<antcall target="dist" inheritall="true" inheritrefs="true" />
-		<antcall target="test-dist" inheritall="true" inheritrefs="true" />
 	</target>
 
 	<target name="default-release" depends="info" description="Produces a release">
@@ -118,7 +114,7 @@
 		</echo>
 		<!-- compile -->
 		<mkdir dir="${class.dir}" />
-		<javac includeantruntime="false" srcdir="${src.dir}" destdir="${class.dir}" debug="true" verbose="false" source="1.5" target="1.5">
+		<javac includeantruntime="false" srcdir="${src.dir}" destdir="${class.dir}" debug="true" verbose="false" source="1.7" target="1.7">
 			<!-- compilerarg value="-Xlint:deprecation"/-->
 			<classpath refid="project.classpath" />
 			<classpath>
@@ -147,7 +143,7 @@
 			====================================================================
 		</echo>
 		<!-- compile aspectj related class files -->
-		<iajc destdir="${class.dir}" sourceRoots="${src-aj.dir}" debug="true" source="1.5" target="1.5">
+		<iajc destdir="${class.dir}" sourceRoots="${src-aj.dir}" debug="true" source="1.7" target="1.7">
 			<classpath refid="project.classpath" />
 			<classpath>
 				<pathelement location="lib/aspectjrt-1.8.5.jar" />

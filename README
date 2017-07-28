@@ -1,0 +1,25 @@
+We have presented a translation of the non-temporal part of TLA + to Cubicle, which makes it possible to feed TLA + specifications into an input language
+of existing Cubicle model checker. Source code can be found in below directory:
+
+ 1) /src/tla2sany/cubicle/CubicleExporter.java : Transforms TLA+ abstract syntax tree into Cubicle abstract syntax tree.
+
+
+ 2) /src/tla2sany/cubicle/WriteCubicleFile.java : Writes Cubicle abstract syntax tree into a Cubicle input file.
+
+	
+			TLA+			Cubicle
+TypeOK			Enumerated set T	Type declaration Ty
+			X ∈  T			var x : Ty
+			X ∈  [S →T]		array x [ proc ] : Ty
+Init			X = e 			x=e
+			X = [s  ∈  [ S ↦  e]]	x[s] = e
+Action	 		State Predicates	Guards
+			Action Predicates	Update state variables
+			Unchanged Clause	Ignored
+
+Safety Invariant	Behavior of system 	Negated form  Unsafe state (Cube)
+			that holds 	
+
+	Table : Correspondance between TLA+ and Cubicle
+
+
